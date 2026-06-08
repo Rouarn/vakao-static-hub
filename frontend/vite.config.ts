@@ -1,0 +1,61 @@
+import { fileURLToPath, URL } from 'node:url';
+import { defineConfig } from 'vite';
+import vue from '@vitejs/plugin-vue';
+import UnoCSS from 'unocss/vite';
+import Components from 'unplugin-vue-components/vite';
+import { NaiveUiResolver } from 'unplugin-vue-components/resolvers';
+
+export default defineConfig({
+  plugins: [
+    vue(),
+    UnoCSS(),
+    Components({
+      dts: 'src/typings/components.d.ts',
+      types: [{ from: 'vue-router', names: ['RouterLink', 'RouterView'] }],
+      resolvers: [NaiveUiResolver()],
+    }),
+  ],
+  resolve: {
+    alias: {
+      '@': fileURLToPath(new URL('./src', import.meta.url)),
+    },
+  },
+  server: {
+    host: '0.0.0.0',
+    port: 9867,
+  },
+  build: {
+    rollupOptions: {
+      output: {
+        chunkFileNames: 'assets/js/[name]-[hash].js',
+        entryFileNames: 'assets/js/[name]-[hash].js',
+        assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
+        manualChunks(id) {
+          if (id.includes('node_modules')) {
+            if (id.includes('jit-viewer')) {
+              return 'jit-viewer';
+            }
+            if (id.includes('naive-ui')) {
+              return 'naive-ui';
+            }
+            if (
+              id.includes('vue') ||
+              id.includes('vue-router') ||
+              id.includes('pinia')
+            ) {
+              return 'vue-vendor';
+            }
+            if (id.includes('axios') || id.includes('dayjs')) {
+              return 'utils-vendor';
+            }
+            if (id.includes('@iconify') || id.includes('@vicons')) {
+              return 'icons-vendor';
+            }
+            return 'vendor';
+          }
+        },
+      },
+    },
+    chunkSizeWarningLimit: 500,
+  },
+});

@@ -1,0 +1,9 @@
+{
+  "extends": "./tsconfig.json",
+  "exclude": ["node_modules", "test", "dist", "deploy", "**/*spec.ts"],
+  "compilerOptions": {
+    "declaration": true,
+    "noEmit": false,
+    "outDir": "./deploy/server"
+  }
+}

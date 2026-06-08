@@ -1,0 +1,27 @@
+/**
+ * 图片服务模块
+ * 提供随机图片获取和处理功能
+ *
+ * 优化说明：
+ * - 导入 FilesModule 以复用 ImageProcessorService
+ * - 移除重复的图片处理逻辑
+ */
+
+import { Module } from '@nestjs/common';
+import { ScheduleModule } from '@nestjs/schedule';
+import { ResourceRootsModule } from '../../infra/resource-roots/resource-roots.module';
+import { FilesModule } from '../files/files.module';
+import { PhotoController } from './photo.controller';
+import { PhotoService } from './photo.service';
+
+/**
+ * 图片模块类
+ * 导入定时任务模块、资源根目录模块和文件模块
+ * 注册图片控制器和服务
+ */
+@Module({
+  imports: [ScheduleModule.forRoot(), ResourceRootsModule, FilesModule],
+  controllers: [PhotoController],
+  providers: [PhotoService],
+})
+export class PhotoModule {}

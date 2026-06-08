@@ -1,0 +1,11 @@
+packages:
+  - 'frontend'
+allowBuilds:
+  '@nestjs/core': true
+  '@scarf/scarf': true
+  better-sqlite3: true
+  canvas: true
+  esbuild: true
+  sharp: true
+  sqlite3: true
+  unrs-resolver: true
