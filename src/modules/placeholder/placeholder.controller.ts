@@ -1,6 +1,7 @@
-import { Controller, Get, Param, Query, Res } from '@nestjs/common';
+import { Controller, Get, Param, Query, Req, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
+import { createHash } from 'crypto';
 import { PlaceholderService, PlaceholderOptions } from './placeholder.service';
 
 @ApiTags('占位图服务')
@@ -19,26 +20,12 @@ export class PlaceholderController {
   @ApiQuery({ name: 'fontWeight', required: false, description: '字重' })
   @ApiQuery({ name: 'fontSize', required: false, description: '字体大小' })
   getDefaultPlaceholder(
+    @Req() req: Request,
     @Res() res: Response,
-    @Query('width') width?: string,
-    @Query('height') height?: string,
-    @Query('text') text?: string,
-    @Query('bgColor') bgColor?: string,
-    @Query('textColor') textColor?: string,
-    @Query('fontFamily') fontFamily?: string,
-    @Query('fontWeight') fontWeight?: string,
-    @Query('fontSize') fontSize?: string,
+    @Query() query: Record<string, string>,
   ) {
-    this.generateAndSendSvg(res, {
-      width,
-      height,
-      text,
-      bgColor,
-      textColor,
-      fontFamily,
-      fontWeight,
-      fontSize,
-    });
+    const base = this.extractQueryOptions(query);
+    this.generateAndSendSvg(req, res, base);
   }
 
   @Get(':size')
@@ -54,24 +41,12 @@ export class PlaceholderController {
   @ApiQuery({ name: 'fontSize', required: false, description: '字体大小' })
   getSquarePlaceholder(
     @Param('size') size: string,
+    @Req() req: Request,
     @Res() res: Response,
-    @Query('text') text?: string,
-    @Query('bgColor') bgColor?: string,
-    @Query('textColor') textColor?: string,
-    @Query('fontFamily') fontFamily?: string,
-    @Query('fontWeight') fontWeight?: string,
-    @Query('fontSize') fontSize?: string,
+    @Query() query: Record<string, string>,
   ) {
-    this.generateAndSendSvg(res, {
-      width: size,
-      height: size,
-      text,
-      bgColor,
-      textColor,
-      fontFamily,
-      fontWeight,
-      fontSize,
-    });
+    const base = this.extractQueryOptions(query);
+    this.generateAndSendSvg(req, res, { ...base, width: size, height: size });
   }
 
   @Get(':width/:height')
@@ -87,33 +62,46 @@ export class PlaceholderController {
   getCustomSizePlaceholder(
     @Param('width') width: string,
     @Param('height') height: string,
+    @Req() req: Request,
     @Res() res: Response,
-    @Query('text') text?: string,
-    @Query('bgColor') bgColor?: string,
-    @Query('textColor') textColor?: string,
-    @Query('fontFamily') fontFamily?: string,
-    @Query('fontWeight') fontWeight?: string,
-    @Query('fontSize') fontSize?: string,
+    @Query() query: Record<string, string>,
   ) {
-    this.generateAndSendSvg(res, {
-      width,
-      height,
-      text,
-      bgColor,
-      textColor,
-      fontFamily,
-      fontWeight,
-      fontSize,
-    });
+    const base = this.extractQueryOptions(query);
+    this.generateAndSendSvg(req, res, { ...base, width, height });
   }
 
-  private generateAndSendSvg(res: Response, options: PlaceholderOptions) {
+  private extractQueryOptions(
+    query: Record<string, string>,
+  ): PlaceholderOptions {
+    return {
+      width: query.width,
+      height: query.height,
+      text: query.text,
+      bgColor: query.bgColor,
+      textColor: query.textColor,
+      fontFamily: query.fontFamily,
+      fontWeight: query.fontWeight,
+      fontSize: query.fontSize,
+    };
+  }
+
+  private generateAndSendSvg(
+    req: Request,
+    res: Response,
+    options: PlaceholderOptions,
+  ) {
     const svg = this.service.generatePlaceholder(options);
-    this.sendSvg(res, svg);
-  }
 
-  private sendSvg(res: Response, svg: string) {
+    const etag = createHash('md5').update(svg).digest('hex');
     res.setHeader('Content-Type', 'image/svg+xml');
+    res.setHeader('Cache-Control', 'public, max-age=86400');
+    res.setHeader('ETag', `"${etag}"`);
+
+    if (req.headers['if-none-match'] === `"${etag}"`) {
+      res.status(304).end();
+      return;
+    }
+
     res.send(svg);
   }
 }

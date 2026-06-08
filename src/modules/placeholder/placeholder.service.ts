@@ -1,4 +1,4 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, BadRequestException } from '@nestjs/common';
 import { generateDefaultPlaceholder } from './generators/default';
 
 export interface PlaceholderOptions {
@@ -14,6 +14,8 @@ export interface PlaceholderOptions {
 
 @Injectable()
 export class PlaceholderService {
+  private readonly MAX_DIMENSION = 4096;
+
   private parseNumber(value?: string | number): number | undefined {
     if (value === undefined || value === null) return undefined;
     if (typeof value === 'number') return value;
@@ -29,15 +31,25 @@ export class PlaceholderService {
   }
 
   generatePlaceholder(options: PlaceholderOptions = {}) {
+    const width = this.parseNumber(options.width);
+    const height = this.parseNumber(options.height);
+
+    if (width !== undefined && (width < 1 || width > this.MAX_DIMENSION)) {
+      throw new BadRequestException(`宽度必须在 1-${this.MAX_DIMENSION} 之间`);
+    }
+    if (height !== undefined && (height < 1 || height > this.MAX_DIMENSION)) {
+      throw new BadRequestException(`高度必须在 1-${this.MAX_DIMENSION} 之间`);
+    }
+
     const normalizedOptions = {
-      width: this.parseNumber(options.width as string | number),
-      height: this.parseNumber(options.height as string | number),
+      width,
+      height,
       text: options.text,
-      bgColor: this.normalizeColor(options.bgColor as string),
-      textColor: this.normalizeColor(options.textColor as string),
+      bgColor: this.normalizeColor(options.bgColor),
+      textColor: this.normalizeColor(options.textColor),
       fontFamily: options.fontFamily,
       fontWeight: options.fontWeight,
-      fontSize: this.parseNumber(options.fontSize as string | number),
+      fontSize: this.parseNumber(options.fontSize),
     };
     const svg = generateDefaultPlaceholder({
       dataUri: false,
