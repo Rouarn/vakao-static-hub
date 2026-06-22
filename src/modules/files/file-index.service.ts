@@ -180,7 +180,7 @@ export class FileIndexService implements OnApplicationBootstrap {
   async removeMany(rootId: string, category: string, relPaths: string[]) {
     const rows = await this.repo.find({
       where: { rootId, category, relPath: In(relPaths) },
-      select: ['id'],
+      select: { id: true },
     });
     if (rows.length === 0) return;
     await this.repo.delete(rows.map((r) => r.id));
