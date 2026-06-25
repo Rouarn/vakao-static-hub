@@ -4,11 +4,14 @@ import { MulterModule } from '@nestjs/platform-express';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { parseSize } from '../../utils/size.util';
 import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity';
+import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity';
 import { ResourceRootsModule } from '../../infra/resource-roots/resource-roots.module';
 import { FileIndexService } from './file-index.service';
 import { FilesController } from './files.controller';
+import { ShareController } from './share.controller';
 import { RootsController } from './roots.controller';
 import { FilesService } from './files.service';
+import { ShareService } from './share.service';
 import { ImageProcessorService } from './image-processor.service';
 
 /**
@@ -19,7 +22,7 @@ import { ImageProcessorService } from './image-processor.service';
 @Module({
   imports: [
     ResourceRootsModule,
-    TypeOrmModule.forFeature([FileEntryEntity]),
+    TypeOrmModule.forFeature([FileEntryEntity, ShareLinkEntity]),
     MulterModule.registerAsync({
       imports: [ConfigModule],
       useFactory: (configService: ConfigService) => ({
@@ -30,8 +33,13 @@ import { ImageProcessorService } from './image-processor.service';
       inject: [ConfigService],
     }),
   ],
-  controllers: [FilesController, RootsController],
-  providers: [FilesService, FileIndexService, ImageProcessorService],
-  exports: [FilesService, ImageProcessorService],
+  controllers: [FilesController, ShareController, RootsController],
+  providers: [
+    FilesService,
+    ShareService,
+    FileIndexService,
+    ImageProcessorService,
+  ],
+  exports: [FilesService, ShareService, ImageProcessorService],
 })
 export class FilesModule {}

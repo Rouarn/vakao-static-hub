@@ -27,6 +27,12 @@ export const builtinChildren: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: 'share-links',
+    name: 'share-links',
+    component: () => import('@/views/share-links/index.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: 'api-docs',
     name: 'api-docs',
     component: () => import('@/views/api-docs/index.vue'),

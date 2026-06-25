@@ -26,7 +26,7 @@ const webDir = join(cwd, 'web');
 export const serverConfig = {
   port: Number(process.env.PORT ?? 9865),
   bodyLimit: process.env.BODY_LIMIT ?? 10485760, // 10mb
-  staticPrefix: process.env.STATIC_PREFIX ?? '/static',
+  staticPrefix: process.env.STATIC_PREFIX ?? 'static',
   publicDir: webDir, // 静态前端资源目录（仅在存在时挂载）
 };
 

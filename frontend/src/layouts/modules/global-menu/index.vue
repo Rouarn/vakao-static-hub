@@ -15,6 +15,7 @@ import {
   ApertureOutline,
   SparklesOutline,
   EyeOutline,
+  LinkOutline,
 } from '@vicons/ionicons5';
 import type { ResourceRoot } from '@/service/api/files';
 
@@ -36,6 +37,7 @@ const emit = defineEmits<{
 
 /** 系统功能菜单配置 */
 const SYSTEM_MENUS = [
+  { key: 'share-links', label: '分享链接 Share Links', icon: LinkOutline },
   { key: 'api-docs', label: 'API 接口文档', icon: CodeSlashOutline },
   { key: 'local-file-preview', label: '文件预览 Preview', icon: EyeOutline },
   {

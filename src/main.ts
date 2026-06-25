@@ -28,8 +28,8 @@ async function bootstrap() {
   const logger = new Logger('Bootstrap');
   const configService = app.get(ConfigService);
 
-  // 给所有 API 路由添加统一前缀 /api
-  app.setGlobalPrefix('api');
+  // 给所有 API 路由添加统一前缀 api
+  app.setGlobalPrefix(serverConfig.staticPrefix);
 
   app.enableCors({
     origin: true,
@@ -88,7 +88,8 @@ async function bootstrap() {
     const hasExtension = (path: string) =>
       /\.[a-zA-Z0-9]+$/.test(path.split('?')[0]);
     const isApiPath = (path: string) =>
-      path.startsWith('/api') || path.startsWith('/docs');
+      path.startsWith(`/${serverConfig.staticPrefix}`) ||
+      path.startsWith('/docs');
 
     instance.use(
       (

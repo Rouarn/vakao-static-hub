@@ -1,12 +1,13 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { NIcon } from 'naive-ui';
-import { DownloadOutline, TrashOutline, CopyOutline } from '@vicons/ionicons5';
+import { DownloadOutline, TrashOutline, CopyOutline, LinkOutline } from '@vicons/ionicons5';
 import FilePreview from './components/file-preview.vue';
 import ImageFilePreview from './components/image-file-preview.vue';
 import ArchiveFilePreview from './components/archive-file-preview.vue';
 import DefaultFilePreview from './components/default-file-preview.vue';
 import CopyLinkModal from './components/copy-link-modal.vue';
+import CreateShareModal from './components/create-share-modal.vue';
 import { isSupported, isArchive, isImage } from '@/utils/file-types';
 
 interface FileItem {
@@ -28,6 +29,7 @@ const emit = defineEmits<{
 }>();
 
 const showCopyModal = ref(false);
+const showShareModal = ref(false);
 
 function openCopyModal() {
   showCopyModal.value = true;
@@ -91,6 +93,16 @@ function closeCopyModal() {
         </NIcon>
       </button>
       <button
+        type="button"
+        class="w-7 h-7 flex items-center justify-center rounded border border-base bg-base text-gray-500 shadow-sm hover:text-blue-500 hover:border-blue-500"
+        title="创建分享链接"
+        @click="showShareModal = true"
+      >
+        <NIcon>
+          <LinkOutline />
+        </NIcon>
+      </button>
+      <button
         class="w-7 h-7 flex items-center justify-center rounded border border-base bg-base text-gray-500 shadow-sm hover:text-pink-500 hover:border-pink-500"
         title="下载"
         @click.prevent="emit('download', props.file.path)"
@@ -115,6 +127,11 @@ function closeCopyModal() {
       :file-path="props.file.path"
       :file-url="props.fileUrl(props.file.path)"
       @close="closeCopyModal"
+    />
+    <CreateShareModal
+      :visible="showShareModal"
+      :file-path="props.file.path"
+      @close="showShareModal = false"
     />
   </div>
 </template>

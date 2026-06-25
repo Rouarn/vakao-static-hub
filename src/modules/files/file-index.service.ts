@@ -96,11 +96,7 @@ export class FileIndexService implements OnApplicationBootstrap {
     for (let i = 0; i < records.length; i += batchSize) {
       const batch = records.slice(i, i + batchSize);
       if (batch.length > 0) {
-        await this.repo.upsert(batch as unknown as FileEntryEntity[], [
-          'rootId',
-          'category',
-          'relPath',
-        ]);
+        await this.repo.upsert(batch, ['rootId', 'category', 'relPath']);
       }
     }
   }

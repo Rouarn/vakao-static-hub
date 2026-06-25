@@ -9,6 +9,7 @@ import { TypeOrmModule } from '@nestjs/typeorm';
 import { ensureDir } from 'fs-extra';
 import { dirname } from 'path';
 import { FileEntryEntity } from './entities/file-entry.entity';
+import { ShareLinkEntity } from './entities/share-link.entity';
 
 /**
  * 数据库模块
@@ -28,7 +29,7 @@ import { FileEntryEntity } from './entities/file-entry.entity';
           type: 'better-sqlite3',
           database,
           synchronize: configService.get<boolean>('db.synchronize') ?? true, // 自动同步实体结构到数据库表
-          entities: [FileEntryEntity], // 注册实体
+          entities: [FileEntryEntity, ShareLinkEntity], // 注册实体
         };
       },
     }),
