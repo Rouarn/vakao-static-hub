@@ -93,7 +93,11 @@ function copyLink() {
     title="创建分享链接"
     :mask-closable="true"
     style="max-width: 480px"
-    @update:show="(value) => { if (!value) close(); }"
+    @update:show="
+      (value) => {
+        if (!value) close();
+      }
+    "
   >
     <div class="space-y-4">
       <div class="text-sm text-gray-500 truncate" :title="props.filePath">
@@ -113,7 +117,10 @@ function copyLink() {
           <div class="text-sm font-medium mb-2">访问次数限制</div>
           <NInputGroup>
             <NInputGroupLabel>最大次数</NInputGroupLabel>
-            <NSelect v-model:value="selectedAccessLimit" :options="accessLimitOptions" />
+            <NSelect
+              v-model:value="selectedAccessLimit"
+              :options="accessLimitOptions"
+            />
           </NInputGroup>
         </div>
       </template>
@@ -134,12 +141,15 @@ function copyLink() {
     <template #footer>
       <NSpace justify="end">
         <NButton @click="close">{{ createdToken ? '关闭' : '取消' }}</NButton>
-        <NButton v-if="!createdToken" type="primary" :loading="loading" @click="handleCreate">
+        <NButton
+          v-if="!createdToken"
+          type="primary"
+          :loading="loading"
+          @click="handleCreate"
+        >
           创建链接
         </NButton>
-        <NButton v-else type="primary" @click="copyLink">
-          复制链接
-        </NButton>
+        <NButton v-else type="primary" @click="copyLink"> 复制链接 </NButton>
       </NSpace>
     </template>
   </NModal>

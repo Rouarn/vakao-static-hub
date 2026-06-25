@@ -1,7 +1,12 @@
 <script setup lang="ts">
 import { ref } from 'vue';
 import { NIcon } from 'naive-ui';
-import { DownloadOutline, TrashOutline, CopyOutline, LinkOutline } from '@vicons/ionicons5';
+import {
+  DownloadOutline,
+  TrashOutline,
+  CopyOutline,
+  LinkOutline,
+} from '@vicons/ionicons5';
 import FilePreview from './components/file-preview.vue';
 import ImageFilePreview from './components/image-file-preview.vue';
 import ArchiveFilePreview from './components/archive-file-preview.vue';
