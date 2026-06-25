@@ -126,7 +126,8 @@ onMounted(() => {
 }
 
 @keyframes floatUp {
-  0%, 100% {
+  0%,
+  100% {
     transform: translateY(0) translateX(0);
     opacity: 0.25;
   }
@@ -220,7 +221,8 @@ onMounted(() => {
 }
 
 @keyframes iconPulse {
-  0%, 100% {
+  0%,
+  100% {
     transform: scale(1);
   }
   50% {
@@ -239,7 +241,9 @@ onMounted(() => {
   font-weight: 700;
   letter-spacing: 6px;
   color: #1a1a2e;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', sans-serif;
+  font-family:
+    -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue',
+    sans-serif;
 }
 .app-subtitle {
   font-size: 13px;
@@ -265,11 +269,23 @@ onMounted(() => {
 }
 
 @keyframes loadProgress {
-  0% { width: 0%; }
-  12% { width: 8%; }
-  30% { width: 35%; }
-  55% { width: 65%; }
-  78% { width: 85%; }
-  100% { width: 96%; }
+  0% {
+    width: 0%;
+  }
+  12% {
+    width: 8%;
+  }
+  30% {
+    width: 35%;
+  }
+  55% {
+    width: 65%;
+  }
+  78% {
+    width: 85%;
+  }
+  100% {
+    width: 96%;
+  }
 }
 </style>

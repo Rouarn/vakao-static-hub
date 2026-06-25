@@ -1,22 +1,36 @@
-import { Injectable, NestMiddleware, Logger } from '@nestjs/common';
-import { Request, Response, NextFunction } from 'express';
-import { createProxyMiddleware, RequestHandler } from 'http-proxy-middleware';
+import {
+  Injectable,
+  NestMiddleware,
+  Logger,
+  OnModuleInit,
+} from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
-import { ClientRequest, IncomingMessage, ServerResponse } from 'http';
-import { Socket } from 'net';
+import { Request, Response, NextFunction } from 'express';
+import type { RequestHandler } from 'express';
+import type { ClientRequest } from 'http';
+import type { Socket } from 'net';
 
 @Injectable()
-export class HitokotoProxyMiddleware implements NestMiddleware {
+export class HitokotoProxyMiddleware implements NestMiddleware, OnModuleInit {
   private readonly logger = new Logger(HitokotoProxyMiddleware.name);
-  private proxy: RequestHandler;
+  private proxy: RequestHandler | null = null;
 
-  constructor(private configService: ConfigService) {
+  constructor(private configService: ConfigService) {}
+
+  async onModuleInit() {
     const target =
       this.configService.get<string>('HITOKOTO_API_URL') ||
       process.env.HITOKOTO_API_URL ||
       '';
 
+    if (!target) {
+      this.logger.warn('Hitokoto proxy target not configured, proxy disabled');
+      return;
+    }
+
     this.logger.log(`Hitokoto proxy middleware initialized. Target: ${target}`);
+
+    const { createProxyMiddleware } = await import('http-proxy-middleware');
 
     this.proxy = createProxyMiddleware({
       target,
@@ -25,22 +39,20 @@ export class HitokotoProxyMiddleware implements NestMiddleware {
         '^/api/hitokoto': '',
       },
       on: {
-        proxyReq: (proxyReq: ClientRequest, req: IncomingMessage) => {
-          const expressReq = req as unknown as Request;
-
-          // 记录转发日志
-          const source = expressReq.originalUrl || expressReq.url;
+        proxyReq: (proxyReq: ClientRequest, req: Request) => {
+          const source = req.originalUrl || req.url;
           const targetUrl = `${proxyReq.protocol}//${proxyReq.host}${proxyReq.path}`;
           this.logger.log(
             `Proxying request: [${req.method}] ${source} -> ${targetUrl}`,
           );
 
+          const body = req.body as Record<string, unknown> | undefined;
           if (
-            expressReq.body &&
-            typeof expressReq.body === 'object' &&
-            Object.keys(expressReq.body as object).length > 0
+            body &&
+            typeof body === 'object' &&
+            Object.keys(body).length > 0
           ) {
-            const bodyData = JSON.stringify(expressReq.body);
+            const bodyData = JSON.stringify(body);
             proxyReq.setHeader('Content-Type', 'application/json');
             proxyReq.setHeader('Content-Length', Buffer.byteLength(bodyData));
             proxyReq.write(bodyData);
@@ -48,19 +60,23 @@ export class HitokotoProxyMiddleware implements NestMiddleware {
         },
         error: (
           err: Error,
-          _req: IncomingMessage,
-          res: ServerResponse | Socket,
+          _req: Request,
+          res: (Response & { headersSent?: boolean }) | Socket,
         ) => {
           this.logger.error(`Proxy error: ${err.message}`);
-          if (res instanceof ServerResponse) {
-            const expressRes = res as unknown as Response;
-            if (!expressRes.headersSent) {
-              expressRes.status(502).json({
-                statusCode: 502,
-                message: 'Bad Gateway - Proxy Error',
-                error: err.message,
-              });
-            }
+          if (
+            res &&
+            typeof res === 'object' &&
+            'headersSent' in res &&
+            !res.headersSent &&
+            'status' in res &&
+            typeof res.status === 'function'
+          ) {
+            res.status(502).json({
+              statusCode: 502,
+              message: 'Bad Gateway - Proxy Error',
+              error: err.message,
+            });
           }
         },
       },
@@ -68,17 +84,11 @@ export class HitokotoProxyMiddleware implements NestMiddleware {
   }
 
   use(req: Request, res: Response, next: NextFunction) {
-    const handler = this.proxy as unknown;
-    if (typeof handler === 'function') {
-      void (
-        handler as (
-          req: Request,
-          res: Response,
-          next: NextFunction,
-        ) => void | Promise<void>
-      )(req, res, next);
-    } else {
+    if (!this.proxy) {
       next();
+      return;
     }
+
+    void this.proxy(req, res, next);
   }
 }

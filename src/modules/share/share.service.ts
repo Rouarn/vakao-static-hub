@@ -1,8 +1,3 @@
-/**
- * 分享链接服务
- * 处理分享链接的创建、验证和管理
- */
-
 import {
   BadRequestException,
   Injectable,
@@ -13,10 +8,6 @@ import { Repository } from 'typeorm';
 import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity';
 import { CreateShareLinkDto } from './dto/create-share-link.dto';
 
-/**
- * 分享链接服务类
- * 封装分享链接的 CRUD 操作和访问验证逻辑
- */
 @Injectable()
 export class ShareService {
   constructor(
@@ -24,14 +15,7 @@ export class ShareService {
     private readonly repo: Repository<ShareLinkEntity>,
   ) {}
 
-  /**
-   * 创建分享链接
-   *
-   * @param dto 创建分享链接参数
-   * @returns 创建的分享链接信息
-   */
   async createShareLink(dto: CreateShareLinkDto) {
-    // 生成不含连字符的 UUID 作为 token
     const token = this.generateToken();
 
     const entity = this.repo.create({
@@ -59,13 +43,6 @@ export class ShareService {
     };
   }
 
-  /**
-   * 验证并访问分享链接
-   * 检查链接有效性（是否过期、访问次数是否超限），并增加访问计数
-   *
-   * @param token 分享 token
-   * @returns 分享链接信息（包含文件路径）
-   */
   async validateAndAccess(token: string) {
     const link = await this.repo.findOne({ where: { token } });
     if (!link) {
@@ -74,17 +51,14 @@ export class ShareService {
 
     const now = Date.now();
 
-    // 检查是否过期
     if (link.expiresAt && now > link.expiresAt) {
       throw new BadRequestException('分享链接已过期');
     }
 
-    // 检查访问次数是否超限
     if (link.maxAccesses && link.accessCount >= link.maxAccesses) {
       throw new BadRequestException('分享链接访问次数已达上限');
     }
 
-    // 增加访问计数
     await this.repo.increment({ id: link.id }, 'accessCount', 1);
 
     return {
@@ -97,11 +71,6 @@ export class ShareService {
     };
   }
 
-  /**
-   * 列出所有分享链接
-   *
-   * @returns 分享链接列表
-   */
   async listShareLinks() {
     const links = await this.repo.find({
       order: { createdAt: 'DESC' },
@@ -119,11 +88,6 @@ export class ShareService {
     }));
   }
 
-  /**
-   * 撤销分享链接
-   *
-   * @param token 分享 token
-   */
   async revokeShareLink(token: string) {
     const result = await this.repo.delete({ token });
     if (result.affected === 0) {
@@ -132,9 +96,6 @@ export class ShareService {
     return { success: true };
   }
 
-  /**
-   * 生成不含连字符的 UUID
-   */
   private generateToken(): string {
     return 'xxxxxxxxxxxxxxxxxxxxxxxxxxxxxxxx'.replace(/x/g, () =>
       Math.floor(Math.random() * 16).toString(16),

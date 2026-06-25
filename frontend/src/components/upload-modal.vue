@@ -290,9 +290,10 @@ async function handleUpload() {
             if (err.response && err.response.status === 413) {
               currentItem.errorMessage = '文件过大';
             } else {
-              const data = err.response?.data as { message?: string } | undefined;
-              currentItem.errorMessage =
-                data?.message || '上传失败';
+              const data = err.response?.data as
+                | { message?: string }
+                | undefined;
+              currentItem.errorMessage = data?.message || '上传失败';
             }
           }
         });

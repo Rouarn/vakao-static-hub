@@ -1,51 +1,45 @@
-/**
- * 文件索引服务
- * 负责文件系统的物理文件与数据库索引之间的同步
- * 包含定时全量同步和事件触发的增量更新
- */
-
-import { Injectable, OnApplicationBootstrap } from '@nestjs/common';
+import { Injectable, OnApplicationBootstrap, Logger } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { SchedulerRegistry } from '@nestjs/schedule';
 import { OnEvent } from '@nestjs/event-emitter';
-import { Interval } from '@nestjs/schedule';
-import { ensureDir, readdir, stat } from 'fs-extra';
-import { extname, join, resolve } from 'path';
+import { mkdir, readdir, stat } from 'node:fs/promises';
+import { extname, join, resolve } from 'node:path';
 import { In, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { scheduleConfig } from '../../config/schedule.config';
 import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service';
 import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity';
 
 type FileRecord = Omit<FileEntryEntity, 'id'>;
 
-/**
- * 文件索引服务
- * 负责文件系统的物理文件与数据库索引之间的同步
- * 包含定时全量同步和事件触发的增量更新
- */
 @Injectable()
 export class FileIndexService implements OnApplicationBootstrap {
+  private readonly logger = new Logger(FileIndexService.name);
+  private readonly syncIntervalName = 'file-index-sync';
+
   constructor(
     private readonly resourceRoots: ResourceRootsService,
+    private readonly configService: ConfigService,
+    private readonly schedulerRegistry: SchedulerRegistry,
     @InjectRepository(FileEntryEntity)
     private readonly repo: Repository<FileEntryEntity>,
   ) {}
 
-  /**
-   * 应用启动时执行一次全量同步
-   */
   async onApplicationBootstrap() {
     await this.syncAll();
+
+    const interval =
+      this.configService.get<number>('schedule.cacheRefreshInterval') ?? 300000;
+    const callback = () => {
+      void this.syncAll();
+    };
+    const intervalId = setInterval(callback, interval);
+    this.schedulerRegistry.addInterval(this.syncIntervalName, intervalId);
+    this.logger.log(`File index sync scheduled every ${interval}ms`);
   }
 
-  /**
-   * 定时任务：定期全量同步所有资源根目录
-   * 间隔时间由配置决定
-   */
-  @Interval(scheduleConfig.cacheRefreshInterval)
   async syncAll() {
     const roots = this.resourceRoots.getRoots();
 
-    // Cleanup orphaned data
     const activeRootIds = roots.map((r) => r.id);
     if (activeRootIds.length > 0) {
       await this.repo.delete({ rootId: Not(In(activeRootIds)) });
@@ -58,27 +52,18 @@ export class FileIndexService implements OnApplicationBootstrap {
     }
   }
 
-  /**
-   * 监听资源配置更新事件，触发全量同步
-   */
   @OnEvent('resource.updated')
   async handleResourceUpdated() {
     await this.syncAll();
   }
 
-  /**
-   * 同步指定根目录下的所有文件索引
-   * 策略：清空该根目录下的旧索引，重新扫描并插入
-   * @param rootId 根目录 ID
-   */
   async syncRoot(rootId: string) {
     const rootPath = this.resourceRoots.resolveRootPath(rootId);
-    await ensureDir(rootPath);
+    await mkdir(rootPath, { recursive: true });
     const categories = (await readdir(rootPath, { withFileTypes: true }))
       .filter((d) => d.isDirectory() && !d.name.startsWith('.'))
       .map((d) => d.name);
 
-    // 清理旧数据
     await this.repo.delete({ rootId });
 
     for (const category of categories) {
@@ -88,9 +73,6 @@ export class FileIndexService implements OnApplicationBootstrap {
     }
   }
 
-  /**
-   * 批量插入文件记录，避免一次性插入过多导致数据库报错
-   */
   private async insertInBatches(records: FileRecord[]) {
     const batchSize = 500;
     for (let i = 0; i < records.length; i += batchSize) {
@@ -101,13 +83,6 @@ export class FileIndexService implements OnApplicationBootstrap {
     }
   }
 
-  /**
-   * 递归遍历分类目录，收集文件信息
-   * @param rootId 根目录 ID
-   * @param category 分类名
-   * @param dir 当前物理路径
-   * @param relBase 相对路径基准
-   */
   private async walkCategory(
     rootId: string,
     category: string,
@@ -118,7 +93,7 @@ export class FileIndexService implements OnApplicationBootstrap {
     const results: FileRecord[] = [];
 
     for (const entry of entries) {
-      if (entry.name.startsWith('.')) continue; // 忽略隐藏目录
+      if (entry.name.startsWith('.')) continue;
       const absPath = join(dir, entry.name);
       const relPath = relBase ? `${relBase}/${entry.name}` : entry.name;
 
@@ -146,9 +121,6 @@ export class FileIndexService implements OnApplicationBootstrap {
     return results;
   }
 
-  /**
-   * 更新单个文件的索引
-   */
   async upsertOne(rootId: string, category: string, relPath: string) {
     const rootPath = this.resourceRoots.resolveRootPath(rootId);
     const absPath = resolve(rootPath, category, ...relPath.split('/'));
@@ -170,9 +142,6 @@ export class FileIndexService implements OnApplicationBootstrap {
     );
   }
 
-  /**
-   * 批量移除文件索引
-   */
   async removeMany(rootId: string, category: string, relPaths: string[]) {
     const rows = await this.repo.find({
       where: { rootId, category, relPath: In(relPaths) },

@@ -8,17 +8,10 @@ import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity
 import { ResourceRootsModule } from '../../infra/resource-roots/resource-roots.module';
 import { FileIndexService } from './file-index.service';
 import { FilesController } from './files.controller';
-import { ShareController } from './share.controller';
-import { RootsController } from './roots.controller';
 import { FilesService } from './files.service';
-import { ShareService } from './share.service';
 import { ImageProcessorService } from './image-processor.service';
+import { ConfigurableFilesInterceptor } from '../../common/interceptors/configurable-files.interceptor';
 
-/**
- * 文件模块
- * 负责文件管理功能的组织和依赖注入
- * 包含文件控制器、根目录控制器、文件服务、图片处理服务和文件索引服务
- */
 @Module({
   imports: [
     ResourceRootsModule,
@@ -33,13 +26,13 @@ import { ImageProcessorService } from './image-processor.service';
       inject: [ConfigService],
     }),
   ],
-  controllers: [FilesController, ShareController, RootsController],
+  controllers: [FilesController],
   providers: [
     FilesService,
-    ShareService,
     FileIndexService,
     ImageProcessorService,
+    ConfigurableFilesInterceptor,
   ],
-  exports: [FilesService, ShareService, ImageProcessorService],
+  exports: [FilesService, ImageProcessorService],
 })
 export class FilesModule {}
