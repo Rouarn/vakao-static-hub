@@ -67,7 +67,22 @@ export default defineConfig({
           }
         },
       },
+      onwarn(warning, warn) {
+        if (
+          warning.code === 'INVALID_ANNOTATION' &&
+          warning.message.includes('@vueuse/core')
+        ) {
+          return;
+        }
+        if (warning.code === 'EVAL' && warning.message.includes('jit-viewer')) {
+          return;
+        }
+        if (warning.message?.includes('jit-viewer')) {
+          return;
+        }
+        warn(warning);
+      },
     },
-    chunkSizeWarningLimit: 500,
+    chunkSizeWarningLimit: 12000, // Increase limit for jit-viewer large chunk
   },
 });

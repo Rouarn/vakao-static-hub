@@ -21,7 +21,7 @@
  *    - 运行 ./start.sh 启动服务（或 npm start）
  */
 
-const fs = require('fs-extra');
+const fs = require('fs/promises');
 const path = require('path');
 const { execSync } = require('child_process');
 const {
@@ -32,6 +32,60 @@ const {
   colors,
   handleError,
 } = require('@vakao-ui/scripts-utils');
+
+// Helper functions to replace fs-extra methods
+async function emptyDir(dir) {
+  await fs.rm(dir, { recursive: true, force: true });
+  await fs.mkdir(dir, { recursive: true });
+}
+
+async function ensureDir(dir) {
+  await fs.mkdir(dir, { recursive: true });
+}
+
+async function pathExists(p) {
+  try {
+    await fs.access(p);
+    return true;
+  } catch {
+    return false;
+  }
+}
+
+async function readJson(file) {
+  const content = await fs.readFile(file, 'utf8');
+  return JSON.parse(content);
+}
+
+async function writeJson(file, data, options = {}) {
+  const spaces = options.spaces || 2;
+  await fs.writeFile(file, JSON.stringify(data, null, spaces), 'utf8');
+}
+
+async function copy(src, dest, options = {}) {
+  const srcStat = await fs.stat(src);
+  if (srcStat.isDirectory()) {
+    await fs.cp(src, dest, {
+      recursive: true,
+      force: options.overwrite ?? true,
+    });
+  } else {
+    await fs.copyFile(src, dest);
+  }
+}
+
+async function move(src, dest, options = {}) {
+  try {
+    await fs.rename(src, dest);
+  } catch {
+    // rename fails across devices, fallback to copy + remove
+    await fs.cp(src, dest, {
+      recursive: true,
+      force: options.overwrite ?? true,
+    });
+    await fs.rm(src, { recursive: true, force: true });
+  }
+}
 
 // 项目关键路径
 const rootDir = path.join(__dirname, '..'); // 仓库根目录（后端源码所在目录）
@@ -70,7 +124,7 @@ async function main() {
 
   log('清理 deploy 目录...', 'clean');
   try {
-    await fs.emptyDir(distDir);
+    await emptyDir(distDir);
   } catch (e) {
     log('无法完全清理 deploy 目录，可能被占用。尝试继续...', 'warning');
   }
@@ -91,10 +145,10 @@ async function main() {
 
   // 4. 将前端静态资源拷贝到 deploy/web
   log('拷贝前端到 deploy/web...', 'copy');
-  await fs.ensureDir(webDistDir);
-  // await fs.copy(path.join(frontendDir, 'dist'), webDistDir, { overwrite: true });
+  await ensureDir(webDistDir);
+  // await copy(path.join(frontendDir, 'dist'), webDistDir, { overwrite: true });
   // 移动 前端 dist 到 deploy/web
-  await fs.move(path.join(frontendDir, 'dist'), webDistDir, {
+  await move(path.join(frontendDir, 'dist'), webDistDir, {
     overwrite: true,
   });
 
@@ -102,17 +156,17 @@ async function main() {
 
   // 5. 准备资源目录 deploy/resources（如果根目录存在 resources，则整体拷贝）
   log('准备资源目录 deploy/resources...', 'copy');
-  // if (await fs.pathExists(resourcesSourceDir)) {
-  //   await fs.copy(resourcesSourceDir, resourcesDistDir, { overwrite: true });
+  // if (await pathExists(resourcesSourceDir)) {
+  //   await copy(resourcesSourceDir, resourcesDistDir, { overwrite: true });
   // } else {
-  //   await fs.ensureDir(resourcesDistDir);
+  //   await ensureDir(resourcesDistDir);
   // }
 
   // 5.1 复制环境变量文件 .env 到 deploy/.env (如果存在)
   const envPath = path.join(rootDir, '.env');
-  if (await fs.pathExists(envPath)) {
+  if (await pathExists(envPath)) {
     log('复制 .env 到 deploy/.env...', 'copy');
-    await fs.copy(envPath, path.join(distDir, '.env'), { overwrite: true });
+    await copy(envPath, path.join(distDir, '.env'), { overwrite: true });
   } else {
     log(
       '未找到根目录 .env 文件，部署包将使用默认配置或系统环境变量',
@@ -122,7 +176,7 @@ async function main() {
 
   // 6. 生成部署用 package.json（只保留必要字段和 dependencies）
   log('生成 deploy/package.json...', 'build');
-  const rootPackageJson = await fs.readJson(rootPackageJsonPath);
+  const rootPackageJson = await readJson(rootPackageJsonPath);
   const deployDependencies = { ...rootPackageJson.dependencies };
   const deployPackageJson = {
     name: rootPackageJson.name || 'vakao-static-hub',
@@ -134,9 +188,8 @@ async function main() {
     dependencies: deployDependencies,
     pnpm: rootPackageJson.pnpm || {},
   };
-  await fs.writeJson(path.join(distDir, 'package.json'), deployPackageJson, {
+  await writeJson(path.join(distDir, 'package.json'), deployPackageJson, {
     spaces: 2,
-    encoding: 'utf8',
   });
 
   const startAppScriptPath = path.join(distDir, 'start-app.js');
