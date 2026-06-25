@@ -1,9 +1,4 @@
 <script setup lang="ts">
-/**
- * 文件上传模态框
- * 支持多文件选择、拖拽上传
- * 显示上传进度和状态
- */
 import { computed, ref, watch } from 'vue';
 import { NModal, NButton, NIcon, NAutoComplete, NSpace } from 'naive-ui';
 import {
@@ -11,7 +6,8 @@ import {
   CloudUploadOutline,
   DocumentOutline,
 } from '@vicons/ionicons5';
-import { uploadFile } from '@/service/api/files';
+import { uploadFile } from '@/api/files';
+import type { AxiosError, AxiosProgressEvent } from 'axios';
 
 interface UploadItem {
   file: File;
@@ -76,9 +72,6 @@ function close() {
   emit('close');
 }
 
-/**
- * 添加文件到上传队列
- */
 function addUploadFiles(
   files: (File | { file: File; relativePath: string })[],
 ) {
@@ -102,12 +95,6 @@ function handleFileInputChange(event: Event) {
   }
 }
 
-/**
- * 处理文件拖放
- * 支持多文件、文件夹拖拽
- * 如果是单个文件夹，自动设置分类路径
- * 如果是多个文件/文件夹，递归读取并添加到上传列表
- */
 async function handleDrop(event: DragEvent) {
   event.preventDefault();
   isDragOver.value = false;
@@ -121,15 +108,9 @@ async function handleDrop(event: DragEvent) {
   }
 }
 
-/**
- * 处理拖放的文件项
- * 递归读取文件夹内容
- */
 async function processDroppedItems(items: DataTransferItemList) {
   const entries: any[] = [];
-  // 遍历 DataTransferItemList 获取文件入口
   for (let i = 0; i < items.length; i++) {
-    // webkitGetAsEntry 是非标准 API，但在 Chrome/Edge/Firefox 等现代浏览器中支持
     const entry = items[i]?.webkitGetAsEntry()
       ? items[i]?.webkitGetAsEntry()
       : null;
@@ -143,12 +124,10 @@ async function processDroppedItems(items: DataTransferItemList) {
   }
 
   const results: { file: File; relativePath: string }[] = [];
-  // 检查是否只拖入了一个文件夹
   const isSingleDir = entries.length === 1 && entries[0].isDirectory;
 
   if (isSingleDir) {
     const dirName = entries[0].name;
-    // 自动设置分类路径：当前输入框内容 + 拖入的文件夹名
     const current =
       uploadCategoryInput.value.trim() || props.defaultCategory || '';
     const separator = current && !current.endsWith('/') ? '/' : '';
@@ -156,7 +135,6 @@ async function processDroppedItems(items: DataTransferItemList) {
       ? `${current}${separator}${dirName}`
       : dirName;
 
-    // 读取该文件夹下的所有内容
     const reader = entries[0].createReader();
     const readAllChildren = async () => {
       let allEntries: any[] = [];
@@ -175,11 +153,9 @@ async function processDroppedItems(items: DataTransferItemList) {
     };
     const children = await readAllChildren();
     for (const child of children) {
-      // 这里的 relativePath 为空，因为文件直接位于该分类下（分类名已包含文件夹名）
       await traverseEntry(child, '', results);
     }
   } else {
-    // 多个文件/文件夹拖入，保留目录结构
     for (const entry of entries) {
       const initialPath = entry.isDirectory ? entry.name : '';
       await traverseEntry(entry, initialPath, results);
@@ -189,12 +165,6 @@ async function processDroppedItems(items: DataTransferItemList) {
   addUploadFiles(results);
 }
 
-/**
- * 递归遍历文件入口
- * @param entry 文件系统入口 (FileEntry | DirectoryEntry)
- * @param parentDir 当前文件的父级相对路径
- * @param results 结果收集数组
- */
 async function traverseEntry(
   entry: any,
   parentDir: string,
@@ -212,7 +182,6 @@ async function traverseEntry(
       let allEntries: any[] = [];
       let done = false;
       while (!done) {
-        // readEntries 可能不会一次返回所有文件，需要循环读取
         const batch = await new Promise<any[]>((resolve) =>
           reader.readEntries(resolve),
         );
@@ -246,11 +215,6 @@ function removeUploadItem(index: number) {
   uploadItems.value.splice(index, 1);
 }
 
-/**
- * 格式化文件大小
- * @param bytes 文件大小（字节）
- * @returns 格式化后的文件大小字符串
- */
 function formatFileSize(bytes: number): string {
   if (bytes === 0) return '0 B';
   const k = 1024;
@@ -259,9 +223,6 @@ function formatFileSize(bytes: number): string {
   return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i];
 }
 
-/**
- * 获取文件的完整上传路径
- */
 function getDisplayPath(item: UploadItem) {
   const baseCategory =
     uploadCategoryInput.value.trim() ||
@@ -308,7 +269,7 @@ async function handleUpload() {
       }
 
       return uploadFile(props.rootId, finalCategory, item.file, {
-        onUploadProgress: (e) => {
+        onUploadProgress: (e: AxiosProgressEvent) => {
           if (!e.total) return;
           const percent = (e.loaded / e.total) * 100;
           const currentItem = uploadItems.value[index];
@@ -320,7 +281,7 @@ async function handleUpload() {
         .then(() => {
           successCount++;
         })
-        .catch((err: any) => {
+        .catch((err: AxiosError) => {
           failCount++;
           const currentItem = uploadItems.value[index];
           if (currentItem) {
@@ -329,8 +290,9 @@ async function handleUpload() {
             if (err.response && err.response.status === 413) {
               currentItem.errorMessage = '文件过大';
             } else {
+              const data = err.response?.data as { message?: string } | undefined;
               currentItem.errorMessage =
-                err.response?.data?.message || '上传失败';
+                data?.message || '上传失败';
             }
           }
         });

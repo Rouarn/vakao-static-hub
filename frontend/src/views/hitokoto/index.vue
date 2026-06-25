@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * 一言视图
- * 获取并展示随机励志短句
- */
 import { ref, onMounted, computed } from 'vue';
 import { NSpin, NButton, NEmpty, NIcon } from 'naive-ui';
 import {
@@ -69,7 +65,6 @@ onMounted(fetchHitokoto);
     class="h-full bg-gradient-to-br from-gray-50 to-primary/5 dark:from-[#101014] dark:to-primary/10 overflow-y-auto overflow-y-hidden"
   >
     <div class="max-w-4xl mx-auto py-12 px-6">
-      <!-- Header -->
       <header class="flex items-center justify-between mb-12">
         <div class="flex items-center gap-4">
           <div
@@ -99,7 +94,6 @@ onMounted(fetchHitokoto);
         </NButton>
       </header>
 
-      <!-- Main Content -->
       <NSpin :show="loading">
         <div
           v-if="error"
@@ -112,11 +106,9 @@ onMounted(fetchHitokoto);
         </div>
 
         <div v-else-if="hitokotoData" class="space-y-8">
-          <!-- Quote Card -->
           <div
             class="bg-base rounded-3xl shadow-2xl shadow-primary/10 p-10 md:p-16 relative overflow-hidden group border border-base transition-all duration-500 hover:shadow-primary/20"
           >
-            <!-- Decorative Elements -->
             <div
               class="absolute top-0 left-0 w-1.5 h-full bg-primary opacity-30 group-hover:opacity-100 transition-opacity duration-500"
             ></div>
@@ -146,12 +138,12 @@ onMounted(fetchHitokoto);
               >
                 <span
                   class="text-primary opacity-40 text-5xl md:text-7xl font-serif absolute -top-4 -left-4 md:-top-8 md:-left-8"
-                  >“</span
+                  >"</span
                 >
                 {{ hitokotoData.hitokoto }}
                 <span
                   class="text-primary opacity-40 text-5xl md:text-7xl font-serif absolute -bottom-12 -right-4 md:-bottom-20 md:-right-8"
-                  >”</span
+                  >"</span
                 >
               </p>
             </div>

@@ -13,10 +13,6 @@ export const builtinRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/file-preview/index.vue'),
     meta: { requiresAuth: false },
   },
-  {
-    path: '/:pathMatch(.*)*',
-    redirect: '/file-list',
-  },
 ];
 
 export const builtinChildren: RouteRecordRaw[] = [

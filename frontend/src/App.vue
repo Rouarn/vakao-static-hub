@@ -4,6 +4,7 @@ import { RouterView } from 'vue-router';
 import { NMessageProvider, NConfigProvider, darkTheme } from 'naive-ui';
 import type { GlobalThemeOverrides } from 'naive-ui';
 import { useDark } from '@vueuse/core';
+import LoadingScreen from '@/components/loading-screen.vue';
 
 const isDark = useDark();
 
@@ -20,6 +21,7 @@ const themeOverrides: GlobalThemeOverrides = {
 </script>
 
 <template>
+  <LoadingScreen />
   <NConfigProvider :theme="theme" :theme-overrides="themeOverrides">
     <NMessageProvider>
       <div class="w-full h-full">

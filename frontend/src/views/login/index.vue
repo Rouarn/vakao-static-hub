@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * 登录视图
- * 处理用户登录逻辑，包含表单验证和 API 调用
- */
 import { ref } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import {
@@ -16,7 +12,7 @@ import {
 } from 'naive-ui';
 import { CloudOutline } from '@vicons/ionicons5';
 import { useAuthStore } from '@/stores/modules/auth';
-import { login } from '@/service/api/auth';
+import { login } from '@/api/auth';
 
 const username = ref('admin');
 const password = ref('admin');
@@ -37,8 +33,8 @@ async function handleLogin() {
   errorMessage.value = '';
 
   try {
-    const res = await login(username.value, password.value);
-    authStore.setAccessToken(res.data.data.accessToken);
+    const data = await login(username.value, password.value);
+    authStore.setAccessToken(data.accessToken);
     const redirect = (route.query.redirect as string) || '/file-list';
     await router.replace(redirect);
   } catch (error: any) {
@@ -79,7 +75,6 @@ async function handleLogin() {
             @keyup.enter="handleLogin"
           />
         </NFormItem>
-        <!-- 登录按钮 -->
         <NFormItem>
           <NButton
             id="loginBtn"

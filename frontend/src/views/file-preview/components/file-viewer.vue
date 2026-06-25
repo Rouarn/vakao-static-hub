@@ -40,8 +40,6 @@ const destroyViewer = () => {
 
 const triggerFitScreen = () => {
   if (!viewerRef.value) return;
-
-  // 查找适应屏幕的按钮
   const fitBtn = viewerRef.value.querySelector(
     '.jv-image-btn[title="实际大小"]',
   );
@@ -81,14 +79,11 @@ const initViewer = async () => {
         loading.value = false;
         emit('load');
 
-        // 如果是图片，使用 MutationObserver 监听 DOM 变化
         if (isImageFile && viewerRef.value) {
-          // 先尝试直接点击
           if (triggerFitScreen()) {
             return;
           }
 
-          // 如果按钮还没出现，使用 MutationObserver 监听
           mutationObserver = new MutationObserver(() => {
             if (triggerFitScreen()) {
               mutationObserver?.disconnect();
@@ -102,7 +97,6 @@ const initViewer = async () => {
             attributes: true,
           });
 
-          // 超时保护，500ms 后停止监听
           setTimeout(() => {
             if (mutationObserver) {
               mutationObserver.disconnect();

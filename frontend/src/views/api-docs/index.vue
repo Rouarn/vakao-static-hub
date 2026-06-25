@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * API 文档组件
- * 通过 iframe 嵌入 API 文档页面
- */
 import { getBaseUrl } from '@/utils/env';
 
 defineOptions({ name: 'ApiDocs' });

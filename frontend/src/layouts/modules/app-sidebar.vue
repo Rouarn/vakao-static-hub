@@ -1,9 +1,4 @@
 <script setup lang="ts">
-/**
- * 侧边栏组件
- * 显示分类菜单和系统功能入口
- * 支持根目录切换
- */
 import { computed, h } from 'vue';
 import { useRoute, useRouter } from 'vue-router';
 import { NMenu, NIcon, NSelect, NButton } from 'naive-ui';
@@ -17,25 +12,21 @@ import {
   EyeOutline,
   LinkOutline,
 } from '@vicons/ionicons5';
-import type { ResourceRoot } from '@/service/api/files';
+import { useFileListStore } from '@/stores/modules/file-list';
 
 const route = useRoute();
 const router = useRouter();
+const store = useFileListStore();
 
 const props = defineProps<{
-  categories: string[];
-  currentCategory: string;
-  roots: ResourceRoot[];
-  currentRootId: string;
+  isOpen: boolean;
 }>();
 
 const emit = defineEmits<{
-  (e: 'selectCategory', category: string): void;
-  (e: 'update:currentRootId', id: string): void;
+  (e: 'closeSidebar'): void;
   (e: 'openSettings'): void;
 }>();
 
-/** 系统功能菜单配置 */
 const SYSTEM_MENUS = [
   { key: 'share-links', label: '分享链接 Share Links', icon: LinkOutline },
   { key: 'api-docs', label: 'API 接口文档', icon: CodeSlashOutline },
@@ -49,25 +40,22 @@ const SYSTEM_MENUS = [
 ] as const;
 
 const rootOptions = computed(() =>
-  props.roots.map((r) => ({ label: r.name, value: r.id })),
+  store.roots.map((r) => ({ label: r.name, value: r.id })),
 );
 
-/**
- * 构造菜单选项
- */
 const menuOptions = computed(() => [
   {
     key: 'group-categories',
     label: '资源分类',
     type: 'group',
-    children: props.categories.map((cat) => ({
+    children: store.categories.map((cat) => ({
       key: `cat:${cat}`,
       label: cat,
       icon: () =>
         h(NIcon, null, {
           default: () =>
             h(
-              cat === props.currentCategory ? FolderOpenOutline : FolderOutline,
+              cat === store.currentCategory ? FolderOpenOutline : FolderOutline,
             ),
         }),
     })),
@@ -86,7 +74,7 @@ const menuOptions = computed(() => [
 
 const menuValue = computed(() => {
   const systemMenu = SYSTEM_MENUS.find((m) => m.key === route.name);
-  return systemMenu ? systemMenu.key : `cat:${props.currentCategory}`;
+  return systemMenu ? systemMenu.key : `cat:${store.currentCategory}`;
 });
 
 function handleMenuSelect(key: string) {
@@ -96,13 +84,19 @@ function handleMenuSelect(key: string) {
   if (systemMenu) {
     router.push({ name: systemMenu.key });
   } else if (key.startsWith('cat:')) {
-    emit('selectCategory', key.slice(4));
+    store.handleCategoryClick(key.slice(4));
   }
+  emit('closeSidebar');
 }
 </script>
 
 <template>
-  <aside class="h-full flex flex-col bg-base border-r border-base">
+  <aside
+    class="h-full flex flex-col bg-base border-r border-base fixed inset-y-0 left-0 z-20 w-[240px] transition-transform duration-300 md:static md:h-auto"
+    :class="
+      props.isOpen ? 'translate-x-0' : '-translate-x-full md:translate-x-0'
+    "
+  >
     <div class="flex-1 overflow-y-auto py-4 scrollbar-hide">
       <NMenu
         :options="menuOptions"
@@ -115,17 +109,16 @@ function handleMenuSelect(key: string) {
       />
     </div>
 
-    <!-- Bottom Fixed Section -->
     <div
       class="mt-auto flex items-center gap-2 border-t border-base bg-container p-4 shadow-[0_-2px_10px_rgba(0,0,0,0.02)]"
     >
       <NSelect
-        :value="props.currentRootId"
+        :value="store.currentRootId"
         :options="rootOptions"
         size="small"
         placeholder="选择存储库"
         class="flex-1"
-        @update:value="(val) => emit('update:currentRootId', val)"
+        @update:value="(val: string) => store.handleRootChange(val)"
       />
       <NButton
         quaternary
@@ -142,6 +135,12 @@ function handleMenuSelect(key: string) {
       </NButton>
     </div>
   </aside>
+
+  <div
+    v-show="props.isOpen"
+    class="fixed inset-0 z-10 bg-black/50 transition-opacity md:hidden"
+    @click="emit('closeSidebar')"
+  />
 </template>
 
 <style scoped>

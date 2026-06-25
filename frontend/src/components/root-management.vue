@@ -1,9 +1,4 @@
 <script setup lang="ts">
-/**
- * 根目录管理模态框
- * 管理多个资源存储位置，支持添加、删除根目录
- * 提供服务器文件系统浏览功能，方便选择路径
- */
 import { ref, onMounted, computed } from 'vue';
 import {
   NModal,
@@ -48,8 +43,8 @@ import {
   removeRoot,
   updateRoot,
   getSystemDirectories,
-  type ResourceRoot,
-} from '@/service/api/files';
+} from '@/api/files';
+import type { ResourceRoot } from '@/types/models';
 
 const props = defineProps<{
   visible: boolean;
@@ -65,7 +60,6 @@ const roots = computed(() => props.allRoots);
 const loading = ref(false);
 const message = useMessage();
 
-// 目录浏览器状态
 const showBrowser = ref(false);
 const browserPath = ref('');
 const browserDirs = ref<any[]>([]);
@@ -78,31 +72,25 @@ const newRoot = ref({
   path: '',
 });
 
-/**
- * 加载服务器目录结构
- * @param path 可选的父目录路径
- */
 async function loadBrowserDirs(path?: string) {
   browserLoading.value = true;
   try {
-    const res = await getSystemDirectories(path);
-    const body = res.data as any;
-    const data = Array.isArray(body) ? body : body.data || [];
-    browserDirs.value = data;
+    const data = await getSystemDirectories(path);
+    const result = Array.isArray(data) ? data : [];
+    browserDirs.value = result;
     if (path) {
       browserPath.value = path;
     } else {
-      // Determine if we are at Windows root (drives) or Unix root (/)
       if (browserDirs.value.length > 0) {
         const firstPath = browserDirs.value[0].path;
         if (firstPath.includes(':\\')) {
-          browserPath.value = ''; // Windows Root
+          browserPath.value = '';
         } else if (firstPath.startsWith('/')) {
-          browserPath.value = '/'; // Unix Root
+          browserPath.value = '/';
         }
       }
     }
-  } catch (e) {
+  } catch {
     message.error('加载目录失败');
   } finally {
     browserLoading.value = false;
@@ -121,27 +109,24 @@ function handleBrowserEnter(path: string) {
 
 function handleBrowserUp() {
   if (!browserPath.value) return;
-  // Simple parent path calculation
   const separator = browserPath.value.includes('/') ? '/' : '\\';
   const parts = browserPath.value.split(separator);
 
-  // Handle case where path ends with separator
   if (parts.length > 0 && parts[parts.length - 1] === '') {
     parts.pop();
   }
 
   if (parts.length <= 1 || (parts.length === 2 && parts[1] === '')) {
-    loadBrowserDirs(undefined); // Go to root/drives
+    loadBrowserDirs(undefined);
     browserPath.value = '';
   } else {
     parts.pop();
-    const parent = parts.join(separator) || separator; // Handle root / case
+    const parent = parts.join(separator) || separator;
     loadBrowserDirs(parent);
     browserPath.value = parent;
   }
 }
 
-// Computed breadcrumbs for browser
 const pathBreadcrumbs = computed(() => {
   if (!browserPath.value) return [];
   const separator = browserPath.value.includes('/') ? '/' : '\\';
@@ -153,7 +138,6 @@ const pathBreadcrumbs = computed(() => {
       (current && !current.endsWith(separator) ? separator : '') +
       (current === '' && browserPath.value.startsWith('/') ? '/' : '') +
       part;
-    // Fix for Windows drive letters which might not need leading separator if at start
     if (
       current.includes(':') &&
       !current.includes(separator) &&
@@ -199,7 +183,7 @@ async function handleAdd() {
     }
     cancelEdit();
     emit('refresh');
-  } catch (e) {
+  } catch {
     message.error(isEditing.value ? '更新失败' : '添加失败，ID可能已存在');
   } finally {
     loading.value = false;
@@ -221,7 +205,7 @@ async function handleRemove(id: string) {
     await removeRoot(id);
     message.success('删除成功');
     emit('refresh');
-  } catch (e) {
+  } catch {
     message.error('删除失败');
   }
 }
@@ -254,7 +238,6 @@ onMounted(() => {});
       </template>
 
       <div class="flex flex-col gap-6">
-        <!-- Add New Section -->
         <div class="bg-container p-3 sm:p-5 rounded-xl border border-base">
           <div class="flex items-center gap-2 mb-4 text-base">
             <NIcon
@@ -337,7 +320,6 @@ onMounted(() => {});
 
         <NDivider style="margin: 0" />
 
-        <!-- List Section -->
         <div>
           <div class="flex items-center justify-between mb-3">
             <h3 class="font-bold text-base flex items-center gap-2">
@@ -356,7 +338,6 @@ onMounted(() => {});
               <NList hoverable clickable v-if="roots.length > 0">
                 <NListItem v-for="root in roots" :key="root.id">
                   <div class="flex items-center gap-2 sm:gap-4 py-1 px-2">
-                    <!-- Icon Box -->
                     <div
                       class="w-10 h-10 bg-primary/10 text-primary rounded-lg flex items-center justify-center flex-shrink-0"
                     >
@@ -365,7 +346,6 @@ onMounted(() => {});
                       </NIcon>
                     </div>
 
-                    <!-- Content -->
                     <div class="flex-1 min-w-0">
                       <div class="flex items-center gap-2 mb-1">
                         <span class="font-bold text-base">{{ root.name }}</span>
@@ -386,7 +366,6 @@ onMounted(() => {});
                       </div>
                     </div>
 
-                    <!-- Actions -->
                     <div class="flex-shrink-0 flex items-center gap-1">
                       <NTooltip trigger="hover">
                         <template #trigger>
@@ -466,7 +445,6 @@ onMounted(() => {});
     </NCard>
   </NModal>
 
-  <!-- Directory Browser Modal -->
   <NModal
     v-model:show="showBrowser"
     preset="card"
@@ -484,7 +462,6 @@ onMounted(() => {});
     </template>
 
     <div class="flex flex-col h-[450px]">
-      <!-- Navigation Bar -->
       <div
         class="flex items-center gap-2 mb-3 bg-container p-2 rounded border border-base"
       >
@@ -530,7 +507,6 @@ onMounted(() => {});
         </div>
       </div>
 
-      <!-- File List -->
       <div
         class="flex-1 overflow-hidden border border-base rounded-lg mb-4 bg-base relative"
       >
@@ -574,7 +550,6 @@ onMounted(() => {});
         </NSpin>
       </div>
 
-      <!-- Footer Actions -->
       <div
         class="flex flex-col sm:flex-row justify-between items-stretch sm:items-center gap-3 sm:gap-0 bg-container -mx-6 -mb-6 px-4 sm:px-6 py-4 mt-0 border-t border-base"
       >

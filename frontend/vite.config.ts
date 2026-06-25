@@ -3,12 +3,24 @@ import { defineConfig } from 'vite';
 import vue from '@vitejs/plugin-vue';
 import UnoCSS from 'unocss/vite';
 import Components from 'unplugin-vue-components/vite';
+import AutoImport from 'unplugin-auto-import/vite';
 import { NaiveUiResolver } from 'unplugin-vue-components/resolvers';
 
 export default defineConfig({
   plugins: [
     vue(),
     UnoCSS(),
+    AutoImport({
+      imports: [
+        'vue',
+        'vue-router',
+        'pinia',
+        {
+          'vue-router': ['RouterLink', 'RouterView'],
+        },
+      ],
+      dts: 'src/typings/auto-imports.d.ts',
+    }),
     Components({
       dts: 'src/typings/components.d.ts',
       types: [{ from: 'vue-router', names: ['RouterLink', 'RouterView'] }],

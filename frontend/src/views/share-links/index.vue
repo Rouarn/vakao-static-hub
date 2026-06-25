@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * 分享链接管理页面
- * 展示所有分享链接，支持复制链接和撤销操作
- */
 import { ref, onMounted, computed } from 'vue';
 import {
   useMessage,
@@ -23,12 +19,8 @@ import {
   RefreshOutline,
   TimeOutline,
 } from '@vicons/ionicons5';
-import {
-  getShareLinks,
-  revokeShareLink,
-  getShareLinkUrl,
-  type ShareLink,
-} from '@/service/api/share';
+import { getShareLinks, revokeShareLink, getShareLinkUrl } from '@/api/share';
+import type { ShareLink } from '@/types/models';
 
 defineOptions({
   name: 'share-links',
@@ -53,8 +45,8 @@ const filteredLinks = computed(() => {
 async function loadShareLinks() {
   loading.value = true;
   try {
-    const { data } = await getShareLinks();
-    shareLinks.value = data.data || [];
+    const data = await getShareLinks();
+    shareLinks.value = data || [];
   } catch {
     message.error('加载分享链接失败');
   } finally {

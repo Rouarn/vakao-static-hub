@@ -12,6 +12,7 @@ export {}
 declare module 'vue' {
   export interface GlobalComponents {
     CopyableCode: typeof import('./../components/copyable-code.vue')['default']
+    LoadingScreen: typeof import('./../components/loading-screen.vue')['default']
     NInput: typeof import('naive-ui')['NInput']
     NSelect: typeof import('naive-ui')['NSelect']
     RootManagement: typeof import('./../components/root-management.vue')['default']

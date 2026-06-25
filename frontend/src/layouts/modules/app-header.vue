@@ -1,8 +1,4 @@
 <script setup lang="ts">
-/**
- * 顶部导航栏组件
- * 包含品牌 Logo、侧边栏切换按钮、刷新缓存、上传文件和用户信息
- */
 import { NButton, NIcon } from 'naive-ui';
 import {
   MenuOutline,
@@ -15,10 +11,6 @@ import {
   SunnyOutline,
 } from '@vicons/ionicons5';
 import { useDark, useToggle } from '@vueuse/core';
-
-defineProps<{
-  username: string;
-}>();
 
 const isDark = useDark();
 const toggleDark = useToggle(isDark);
@@ -33,7 +25,7 @@ const emit = defineEmits<{
 
 <template>
   <header
-    class="flex h-full w-full items-center justify-between bg-base px-6 z-10 border-b border-base"
+    class="flex w-full items-center justify-between bg-base px-6 z-10 border-b border-base"
   >
     <div class="flex items-center gap-3">
       <NButton
@@ -100,9 +92,9 @@ const emit = defineEmits<{
         >
           <NIcon><PersonCircleOutline /></NIcon>
         </div>
-        <span class="hidden sm:inline text-sm font-medium text-base">{{
-          username
-        }}</span>
+        <span class="hidden sm:inline text-sm font-medium text-base">
+          Admin
+        </span>
         <NButton
           quaternary
           circle

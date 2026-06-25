@@ -1,10 +1,10 @@
 <script setup lang="ts">
-import { computed, ref, watch } from 'vue';
+import { computed } from 'vue';
 import { useDark } from '@vueuse/core';
 import UrlInput from './components/url-input.vue';
 import FileViewer from './components/file-viewer.vue';
 import StatusDisplay from './components/status-display.vue';
-import { useFilePreview } from './composables/use-file-preview';
+import { useFilePreview } from '@/composables/use-file-preview';
 
 defineOptions({ name: 'FilePreviewPage' });
 
@@ -27,13 +27,14 @@ const {
   handleLoad,
 } = useFilePreview();
 
+import { ref, watch } from 'vue';
+
 const fileViewerRef = ref<InstanceType<typeof FileViewer> | null>(null);
 
 const handleReload = () => {
   fileViewerRef.value?.reload();
 };
 
-// 监听重新加载触发
 watch(reloadTrigger, () => {
   handleReload();
 });

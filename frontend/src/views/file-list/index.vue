@@ -1,9 +1,5 @@
 <script setup lang="ts">
-/**
- * 文件列表组件
- * 展示文件数据，支持网格/列表视图切换，分页，删除和下载
- */
-import { computed, h, ref, inject } from 'vue';
+import { computed, h, ref } from 'vue';
 import {
   useBreakpoints,
   breakpointsTailwind,
@@ -26,44 +22,20 @@ import {
   ArrowUpOutline,
   ArrowDownOutline,
 } from '@vicons/ionicons5';
-import { appContextKey, type SortField } from '@/contexts/app';
+import { useFileListStore } from '@/stores/modules/file-list/index.ts';
+import type { SortField } from '@/types/models.ts';
+import { formatSize, formatDate } from '@/utils/format';
+import { buildFileUrl } from '@/utils/url';
 
 defineOptions({
   name: 'file-list',
 });
 
-interface FileItem {
-  path: string;
-  size: number;
-  mtime: string | number;
-}
-
-const appContext = inject(appContextKey)!;
-
-const {
-  files,
-  totalFiles,
-  page,
-  pageSize,
-  viewMode,
-  currentCategory,
-  searchQuery,
-  sortBy,
-  sortOrder,
-  formatSize,
-  formatDate,
-  fileUrl,
-  loadFiles,
-  switchView,
-  openDeleteModal,
-  handlePageChange,
-  handleSearch,
-} = appContext;
+const store = useFileListStore();
 
 const breakpoints = useBreakpoints(breakpointsTailwind);
 const isMobile = breakpoints.smaller('md');
 
-// 虚拟列表配置
 const mainContainer = ref<HTMLElement | null>(null);
 const { width: containerWidth } = useElementSize(mainContainer);
 const { width: windowWidth } = useWindowSize();
@@ -72,41 +44,33 @@ const gridCols = computed(() => {
   let width = containerWidth.value;
   const winWidth = windowWidth.value;
 
-  // 如果获取不到容器宽度（例如初始化时），使用窗口宽度进行估算
   if (width <= 0) {
     if (winWidth > 0) {
-      // 估算：窗口宽度 - 侧边栏(约260px) - Padding
-      // 注意：这只是一个临时兜底，useElementSize 更新后会自动修正
       width = winWidth - (isMobile.value ? 32 : 280);
     } else {
       return 2;
     }
   }
 
-  // 减去左右 padding (md:px-6 = 48px, px-4 = 32px)
-  // 还要减去滚动条宽度（约 10-15px），为了安全起见多减一点
   const padding = isMobile.value ? 32 : 64;
   const contentWidth = width - padding;
 
   if (contentWidth <= 0) return 2;
 
-  const gap = 20; // gap-5 (1.25rem = 20px)
+  const gap = 20;
   const minWidth = 160;
-
-  // 计算逻辑：(minWidth + gap) * cols - gap <= contentWidth
-  // 即：cols * (minWidth + gap) <= contentWidth + gap
   const cols = Math.floor((contentWidth + gap) / (minWidth + gap));
 
-  return Math.max(2, cols); // 最少2列
+  return Math.max(2, cols);
 });
 
 const chunkedFiles = computed(() => {
   const cols = gridCols.value;
   const result = [];
-  for (let i = 0; i < files.value.length; i += cols) {
+  for (let i = 0; i < store.files.length; i += cols) {
     result.push({
       id: i,
-      items: files.value.slice(i, i + cols),
+      items: store.files.slice(i, i + cols),
     });
   }
   return result;
@@ -117,7 +81,7 @@ const {
   containerProps,
   wrapperProps,
 } = useVirtualList(chunkedFiles, {
-  itemHeight: 200, // 估算高度，卡片高度 + 间距
+  itemHeight: 200,
   overscan: 2,
 });
 
@@ -128,50 +92,44 @@ const sortOptions = [
 ];
 
 function handleSortOrderToggle() {
-  sortOrder.value = sortOrder.value === 'asc' ? 'desc' : 'asc';
-  handleSearch();
+  store.sortOrder = store.sortOrder === 'asc' ? 'desc' : 'asc';
+  store.handleSearch();
 }
 
 function handleSortByChange(value: SortField) {
-  sortBy.value = value;
-  handleSearch();
+  store.sortBy = value;
+  store.handleSearch();
 }
 
 function handleSearchInput(value: string) {
-  searchQuery.value = value;
+  store.searchQuery = value;
   if (!value) {
-    handleSearch();
+    store.handleSearch();
   }
 }
 
-/**
- * 处理文件下载
- * 创建临时链接触发下载，支持添加 token
- */
+function fileUrl(path: string) {
+  return buildFileUrl(store.currentRootId, store.currentCategory, path);
+}
+
 function handleDownload(path: string) {
   let url = fileUrl(path);
-  // 如果已登录，fileUrl 已包含认证令牌
   if (url.includes('?')) {
     url += '&download=1';
   } else {
     url += '?download=1';
   }
 
-  // 创建临时链接以触发下载
   const link = document.createElement('a');
   link.href = url;
-  link.setAttribute('download', ''); // 此属性有帮助，但服务器的 Content-Disposition 是关键
+  link.setAttribute('download', '');
   document.body.appendChild(link);
   link.click();
   document.body.removeChild(link);
 }
 
-type FileRow = FileItem;
+type FileRow = { path: string; size: number; mtime: string | number };
 
-/**
- * 定义列表视图的列配置
- * 使用 Naive UI 的 render 函数自定义渲染内容
- */
 const columns = computed<DataTableColumns<FileRow>>(() => [
   {
     title: '文件名',
@@ -256,6 +214,28 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
     },
   },
 ]);
+
+const showDeleteModal = ref(false);
+const deleteTargetPath = ref('');
+
+function openDeleteModal(path: string) {
+  deleteTargetPath.value = path;
+  showDeleteModal.value = true;
+}
+
+import { NModal, useMessage } from 'naive-ui';
+const message = useMessage();
+
+async function confirmDelete() {
+  if (!deleteTargetPath.value) return;
+  const ok = await store.handleDeleteFile(deleteTargetPath.value);
+  if (ok) {
+    message.success('删除成功');
+    showDeleteModal.value = false;
+  } else {
+    message.error('删除失败');
+  }
+}
 </script>
 
 <template>
@@ -272,24 +252,23 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
           id="currentCategoryTitle"
           class="text-xl font-semibold mb-1 text-base"
         >
-          {{ currentCategory }}
+          {{ store.currentCategory }}
         </h2>
         <span id="fileCount" class="text-xs text-gray-500">
-          {{ totalFiles }} 个文件
+          {{ store.totalFiles }} 个文件
         </span>
       </div>
 
       <div
         class="flex flex-wrap items-center justify-between md:justify-start gap-2 md:gap-3 w-full md:w-auto"
       >
-        <!-- Search Input -->
         <div
           class="flex items-center gap-1 bg-base px-1 py-1 rounded-md border border-base shadow-sm w-full md:w-auto"
         >
           <NInput
-            :value="searchQuery"
+            :value="store.searchQuery"
             @update:value="handleSearchInput"
-            @keydown.enter="handleSearch"
+            @keydown.enter="store.handleSearch"
             placeholder="搜索文件..."
             size="tiny"
             class="w-full! md:w-40! text-xs!"
@@ -302,12 +281,11 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
           </NInput>
         </div>
 
-        <!-- Sort Controls -->
         <div
           class="flex items-center gap-1 bg-base px-1 py-1 rounded-md border border-base shadow-sm"
         >
           <NSelect
-            :value="sortBy"
+            :value="store.sortBy"
             :options="sortOptions"
             @update:value="handleSortByChange"
             size="tiny"
@@ -321,7 +299,7 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
             @click="handleSortOrderToggle"
           >
             <NIcon size="14">
-              <ArrowUpOutline v-if="sortOrder === 'asc'" />
+              <ArrowUpOutline v-if="store.sortOrder === 'asc'" />
               <ArrowDownOutline v-else />
             </NIcon>
           </button>
@@ -337,13 +315,12 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
           <button
             class="w-9 h-9 inline-flex items-center justify-center rounded-md border border-transparent bg-transparent text-[#6c757d] text-lg hover:bg-container hover:text-primary transition-all"
             :class="
-              viewMode === 'grid'
+              store.viewMode === 'grid'
                 ? 'bg-primary/10! text-primary! border-primary'
                 : 'border-transparent'
             "
-            id="viewGrid"
             title="网格视图"
-            @click="switchView('grid')"
+            @click="store.switchView('grid')"
           >
             <NIcon>
               <AppsOutline />
@@ -352,13 +329,12 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
           <button
             class="w-9 h-9 inline-flex items-center justify-center rounded-md border border-transparent bg-transparent text-[#6c757d] text-lg hover:bg-container hover:text-primary transition-all"
             :class="
-              viewMode === 'list'
+              store.viewMode === 'list'
                 ? 'bg-primary/10! text-primary! border-primary'
                 : 'border-transparent'
             "
-            id="viewList"
             title="列表视图"
-            @click="switchView('list')"
+            @click="store.switchView('list')"
           >
             <NIcon>
               <ReorderThreeOutline />
@@ -366,9 +342,8 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
           </button>
           <button
             class="w-9 h-9 inline-flex items-center justify-center rounded-md border border-transparent bg-transparent text-[#6c757d] text-lg hover:bg-container hover:text-primary transition-all"
-            id="refreshBtn"
             title="刷新"
-            @click="loadFiles"
+            @click="store.loadFiles"
           >
             <NIcon>
               <RefreshOutline />
@@ -381,18 +356,17 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
     <div
       id="emptyState"
       class="text-center py-16 text-[#6c757d]"
-      :class="files.length > 0 ? 'hidden' : ''"
+      :class="store.files.length > 0 ? 'hidden' : ''"
     >
       <NIcon class="text-6xl text-[#dee2e6] mb-4 block mx-auto">
         <FolderOpenOutline />
       </NIcon>
       <h3 class="text-lg text-[#212529] mb-2">此分类暂无文件</h3>
-      <p class="text-sm">点击右上角“上传文件”添加资源</p>
+      <p class="text-sm">点击右上角"上传文件"添加资源</p>
     </div>
 
-    <!-- Grid View with Virtual Scroll for PC -->
     <div
-      v-show="files.length > 0 && viewMode === 'grid'"
+      v-show="store.files.length > 0 && store.viewMode === 'grid'"
       id="fileGrid"
       :class="{ 'h-[calc(100vh-300px)] overflow-y-auto': !isMobile }"
       v-bind="!isMobile ? containerProps : {}"
@@ -421,14 +395,13 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
         </NImageGroup>
       </div>
 
-      <!-- 移动设备的普通网格视图 -->
       <div
         v-else
         class="grid grid-cols-[repeat(auto-fill,minmax(160px,1fr))] gap-5 md:gap-5"
       >
         <NImageGroup>
           <FileCard
-            v-for="file in files"
+            v-for="file in store.files"
             :key="file.path"
             :file="file"
             :file-url="fileUrl"
@@ -442,11 +415,11 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
     </div>
 
     <NDataTable
-      v-show="files.length > 0 && viewMode === 'list'"
+      v-show="store.files.length > 0 && store.viewMode === 'list'"
       id="fileList"
       class="mt-4 rounded-xl shadow-sm"
       :columns="columns"
-      :data="files"
+      :data="store.files"
       :bordered="false"
       :single-line="false"
       :flex-height="!isMobile"
@@ -455,17 +428,27 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
     />
 
     <div
-      v-if="totalFiles > pageSize"
+      v-if="store.totalFiles > store.pageSize"
       class="flex justify-center py-4 sticky bottom-0 z-2 backdrop-blur supports-[backdro8f9fa]/80 border-t border-[#e9ecef] shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.05)]"
     >
       <NPagination
-        :page="page"
-        :page-size="pageSize"
-        :item-count="totalFiles"
+        :page="store.page"
+        :page-size="store.pageSize"
+        :item-count="store.totalFiles"
         :page-slot="7"
-        @update:page="handlePageChange"
+        @update:page="store.handlePageChange"
       />
     </div>
+
+    <NModal
+      v-model:show="showDeleteModal"
+      preset="dialog"
+      title="确认删除"
+      content="此操作不可恢复，确定要删除吗？"
+      positive-text="删除"
+      negative-text="取消"
+      @positive-click="confirmDelete"
+    />
   </main>
 </template>
 
@@ -479,7 +462,6 @@ const columns = computed<DataTableColumns<FileRow>>(() => [
   display: none;
 }
 
-/* 同时也隐藏列表视图的滚动条 */
 :deep(.n-data-table-base-table-body) {
   -ms-overflow-style: none;
   scrollbar-width: none;

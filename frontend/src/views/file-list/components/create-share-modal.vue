@@ -1,9 +1,5 @@
 <script setup lang="ts">
-/**
- * 创建分享链接模态框
- * 用于为文件创建带过期时间和访问限制的分享链接
- */
-import { ref, inject } from 'vue';
+import { ref } from 'vue';
 import {
   NModal,
   NButton,
@@ -13,9 +9,9 @@ import {
   NSpace,
   useMessage,
 } from 'naive-ui';
-import { createShareLink, getShareLinkUrl } from '@/service/api/share';
+import { createShareLink, getShareLinkUrl } from '@/api/share';
 import CopyableCode from '@/components/copyable-code.vue';
-import { appContextKey } from '@/contexts/app';
+import { useFileListStore } from '@/stores/modules/file-list';
 
 const props = defineProps<{
   visible: boolean;
@@ -27,12 +23,11 @@ const emit = defineEmits<{
 }>();
 
 const message = useMessage();
-const appContext = inject(appContextKey)!;
+const store = useFileListStore();
 
 const loading = ref(false);
 const createdToken = ref('');
 
-// 过期时间选项
 const expireOptions = [
   { label: '永不过期', value: 0 },
   { label: '1 小时', value: 3600000 },
@@ -42,7 +37,6 @@ const expireOptions = [
 ];
 const selectedExpire = ref(0);
 
-// 访问次数限制
 const accessLimitOptions = [
   { label: '不限制', value: 0 },
   { label: '1 次', value: 1 },
@@ -61,14 +55,14 @@ function close() {
 async function handleCreate() {
   loading.value = true;
   try {
-    const { data } = await createShareLink({
-      rootId: appContext.currentRootId.value,
-      category: appContext.currentCategory.value,
+    const data = await createShareLink({
+      rootId: store.currentRootId,
+      category: store.currentCategory,
       filePath: props.filePath,
       expiresInMs: selectedExpire.value || undefined,
       maxAccesses: selectedAccessLimit.value || undefined,
     });
-    createdToken.value = data.data.token;
+    createdToken.value = data.token;
     message.success('分享链接已创建');
   } catch (error: any) {
     message.error(error.response?.data?.message || '创建失败');
