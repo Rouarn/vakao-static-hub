@@ -24,11 +24,11 @@ export class HitokotoProxyMiddleware implements NestMiddleware, OnModuleInit {
       '';
 
     if (!target) {
-      this.logger.warn('Hitokoto proxy target not configured, proxy disabled');
+      this.logger.warn('Hitokoto 代理目标未配置，代理已禁用');
       return;
     }
 
-    this.logger.log(`Hitokoto proxy middleware initialized. Target: ${target}`);
+    this.logger.log(`Hitokoto 代理中间件初始化，目标: ${target}`);
 
     const { createProxyMiddleware } = await import('http-proxy-middleware');
 
@@ -43,7 +43,7 @@ export class HitokotoProxyMiddleware implements NestMiddleware, OnModuleInit {
           const source = req.originalUrl || req.url;
           const targetUrl = `${proxyReq.protocol}//${proxyReq.host}${proxyReq.path}`;
           this.logger.log(
-            `Proxying request: [${req.method}] ${source} -> ${targetUrl}`,
+            `请求代理: [${req.method}] ${source} -> ${targetUrl}`,
           );
 
           const body = req.body as Record<string, unknown> | undefined;
@@ -63,7 +63,7 @@ export class HitokotoProxyMiddleware implements NestMiddleware, OnModuleInit {
           _req: Request,
           res: (Response & { headersSent?: boolean }) | Socket,
         ) => {
-          this.logger.error(`Proxy error: ${err.message}`);
+          this.logger.error(`代理错误: ${err.message}`);
           if (
             res &&
             typeof res === 'object' &&
@@ -74,7 +74,7 @@ export class HitokotoProxyMiddleware implements NestMiddleware, OnModuleInit {
           ) {
             res.status(502).json({
               statusCode: 502,
-              message: 'Bad Gateway - Proxy Error',
+              message: 'Bad Gateway - 代理错误',
               error: err.message,
             });
           }

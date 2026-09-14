@@ -1,9 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import {
+  BadRequestException,
+  ConflictException,
+  Injectable,
+  NotFoundException,
+} from '@nestjs/common';
 import {
   access,
   constants,
   mkdir,
   readdir,
+  rename as fsRename,
   rm,
   stat,
   writeFile,
@@ -14,6 +20,7 @@ import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity';
+import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity';
 import {
   safeJoin,
   normalizeCategoryPath,
@@ -26,6 +33,8 @@ export class FilesService {
     private readonly resourceRoots: ResourceRootsService,
     @InjectRepository(FileEntryEntity)
     private readonly repo: Repository<FileEntryEntity>,
+    @InjectRepository(ShareLinkEntity)
+    private readonly shareRepo: Repository<ShareLinkEntity>,
   ) {}
 
   safeJoinCategory(rootId: string, category: string, parts: string[]) {
@@ -238,5 +247,117 @@ export class FilesService {
     } catch (e) {
       console.warn('清理空目录失败:', e);
     }
+  }
+
+  /**
+   * 校验文件名是否为合法的 basename
+   * 禁止路径分隔符、控制字符、"." / ".." 以及首尾空白
+   */
+  private validateBasename(name: string): string {
+    const trimmed = typeof name === 'string' ? name.trim() : '';
+    const hasControlChar =
+      trimmed.length > 0 &&
+      Array.from(trimmed).some((ch) => ch.charCodeAt(0) <= 31);
+    if (
+      !trimmed ||
+      trimmed === '.' ||
+      trimmed === '..' ||
+      trimmed.includes('\\') ||
+      trimmed.includes('/') ||
+      hasControlChar
+    ) {
+      throw new BadRequestException('文件名不合法');
+    }
+    return trimmed;
+  }
+
+  /**
+   * 重命名文件（仅允许修改 basename，不改变所在目录）
+   * 严格模式：源文件不存在直接报错；目标路径已存在返回冲突
+   * 物理文件、文件索引与分享链接路径在同一操作内同步更新
+   */
+  async renameFile(
+    rootId: string,
+    category: string,
+    filename: string,
+    newName: string,
+  ) {
+    const targetName = this.validateBasename(newName);
+
+    const { dbCategory, relPathSuffix } = normalizeCategoryPath(category);
+    const oldRelPath = relPathSuffix
+      ? `${relPathSuffix}/${filename}`
+      : filename;
+
+    // 仅替换 basename，保留原有目录段
+    const dirPart = dirname(oldRelPath);
+    const newRelPath =
+      dirPart === '.' ? targetName : `${dirPart}/${targetName}`;
+
+    if (oldRelPath === newRelPath) {
+      throw new BadRequestException('新文件名与原文件名相同');
+    }
+
+    const rootPath = this.resourceRoots.resolveRootPath(rootId);
+    const oldFullPath = safeJoin(rootPath, [dbCategory, oldRelPath]);
+    const newFullPath = safeJoin(rootPath, [dbCategory, newRelPath]);
+
+    // 源文件必须真实存在，避免产生磁盘与索引不一致的记录
+    let sourceStat;
+    try {
+      sourceStat = await stat(oldFullPath);
+    } catch {
+      throw new NotFoundException('文件不存在');
+    }
+    if (!sourceStat.isFile()) {
+      throw new BadRequestException('目标不是文件');
+    }
+
+    // 目标路径已存在（磁盘或索引任一命中即视为冲突）
+    try {
+      await access(newFullPath, constants.F_OK);
+      throw new ConflictException('同名文件已存在');
+    } catch (e) {
+      if (e instanceof ConflictException) throw e;
+    }
+
+    const indexConflict = await this.repo.findOne({
+      where: { rootId, category: dbCategory, relPath: newRelPath },
+    });
+    if (indexConflict) {
+      throw new ConflictException('同名文件已存在');
+    }
+
+    await fsRename(oldFullPath, newFullPath);
+
+    const s = await stat(newFullPath);
+    await this.repo.update(
+      { rootId, category: dbCategory, relPath: oldRelPath },
+      {
+        relPath: newRelPath,
+        name: targetName,
+        ext: getFileExtension(targetName),
+        size: s.size,
+        mtimeMs: s.mtimeMs,
+      },
+    );
+
+    // 同步更新指向该文件的分享链接（filePath 相对分类目录）
+    const fileDir = dirname(filename);
+    const newFilePath =
+      fileDir === '.' ? targetName : `${fileDir}/${targetName}`;
+    if (filename !== newFilePath) {
+      await this.shareRepo.update(
+        { rootId, category, filePath: filename },
+        { filePath: newFilePath },
+      );
+    }
+
+    return {
+      name: targetName,
+      path: newFilePath,
+      size: s.size,
+      mtime: s.mtimeMs,
+    };
   }
 }

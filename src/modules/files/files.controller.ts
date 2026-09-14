@@ -6,6 +6,7 @@ import {
   Get,
   NotFoundException,
   Param,
+  Patch,
   Post,
   Query,
   Req,
@@ -26,6 +27,7 @@ import type { Response, Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { FilesService } from './files.service';
 import { ListFilesQueryDto } from './dto/list-files-query.dto';
+import { RenameFileDto } from './dto/rename-file.dto';
 import { Public } from '../auth/decorators/public.decorator';
 import { ImageProcessorService } from './image-processor.service';
 import { getMimeType } from './utils/mime-types';
@@ -162,6 +164,38 @@ export class FilesController {
     res.setHeader('Content-Type', mimeType);
     res.setHeader('Cache-Control', 'public, max-age=86400');
     res.send(buffer);
+  }
+
+  @Patch(':rootId/:category/*path')
+  @ApiOperation({ summary: '重命名文件' })
+  @ApiParam({ name: 'rootId', description: '根目录 ID' })
+  @ApiParam({ name: 'category', description: '分类目录名' })
+  @ApiParam({ name: 'path', description: '文件相对路径' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['newName'],
+      properties: {
+        newName: { type: 'string', description: '新文件名（不含路径分隔符）' },
+      },
+    },
+  })
+  async renameFile(
+    @Param('rootId') rootId: string,
+    @Param('category') category: string,
+    @Param('path') path: string[] | string,
+    @Body() dto: RenameFileDto,
+  ) {
+    const filename = Array.isArray(path) ? path.join('/') : path;
+    if (!filename) {
+      throw new BadRequestException('Invalid file path');
+    }
+    return await this.service.renameFile(
+      rootId,
+      category,
+      filename,
+      dto.newName,
+    );
   }
 
   @Delete(':rootId/:category/*path')

@@ -73,6 +73,22 @@ export function deleteFile(rootId: string, category: string, path: string) {
   return del<null>(`/files/${rootId}/${encodedCategory}/${encodedPath}`);
 }
 
+export function renameFile(
+  rootId: string,
+  category: string,
+  path: string,
+  newName: string,
+) {
+  const encodedCategory = encodeURIComponent(category);
+  const encodedPath = path
+    .split('/')
+    .map((segment) => encodeURIComponent(segment))
+    .join('/');
+  return patch<FileItem>(`/files/${rootId}/${encodedCategory}/${encodedPath}`, {
+    newName,
+  });
+}
+
 export function refreshPhotoCache() {
   return post<{ message: string }>('/photo/refresh-cache');
 }

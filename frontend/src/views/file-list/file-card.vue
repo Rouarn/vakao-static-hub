@@ -6,6 +6,7 @@ import {
   TrashOutline,
   CopyOutline,
   LinkOutline,
+  CreateOutline,
 } from '@vicons/ionicons5';
 import FilePreview from './components/file-preview.vue';
 import ImageFilePreview from './components/image-file-preview.vue';
@@ -13,6 +14,7 @@ import ArchiveFilePreview from './components/archive-file-preview.vue';
 import DefaultFilePreview from './components/default-file-preview.vue';
 import CopyLinkModal from './components/copy-link-modal.vue';
 import CreateShareModal from './components/create-share-modal.vue';
+import RenameFileModal from './components/rename-file-modal.vue';
 import { isSupported, isArchive, isImage } from '@/utils/file-types';
 
 interface FileItem {
@@ -35,6 +37,7 @@ const emit = defineEmits<{
 
 const showCopyModal = ref(false);
 const showShareModal = ref(false);
+const showRenameModal = ref(false);
 
 function openCopyModal() {
   showCopyModal.value = true;
@@ -108,6 +111,16 @@ function closeCopyModal() {
         </NIcon>
       </button>
       <button
+        type="button"
+        class="w-7 h-7 flex items-center justify-center rounded border border-base bg-base text-gray-500 shadow-sm hover:text-amber-500 hover:border-amber-500"
+        title="重命名"
+        @click="showRenameModal = true"
+      >
+        <NIcon>
+          <CreateOutline />
+        </NIcon>
+      </button>
+      <button
         class="w-7 h-7 flex items-center justify-center rounded border border-base bg-base text-gray-500 shadow-sm hover:text-pink-500 hover:border-pink-500"
         title="下载"
         @click.prevent="emit('download', props.file.path)"
@@ -137,6 +150,11 @@ function closeCopyModal() {
       :visible="showShareModal"
       :file-path="props.file.path"
       @close="showShareModal = false"
+    />
+    <RenameFileModal
+      :visible="showRenameModal"
+      :file-path="props.file.path"
+      @close="showRenameModal = false"
     />
   </div>
 </template>
