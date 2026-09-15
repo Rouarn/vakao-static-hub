@@ -102,6 +102,7 @@ async function loadApps(selectFirst = false) {
     apps.value = await getApps();
     if (selectFirst && apps.value.length > 0 && !selectedApp.value) {
       selectedApp.value = apps.value[0];
+      void loadList();
     }
     if (selectedApp.value && !apps.value.includes(selectedApp.value)) {
       selectedApp.value = null;
