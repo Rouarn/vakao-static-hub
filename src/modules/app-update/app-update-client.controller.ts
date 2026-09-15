@@ -1,0 +1,68 @@
+/**
+ * APP 更新客户端接口（公开，无需登录）
+ * 版本检查 / APK 下载（支持 Range 断点续传）/ 事件上报
+ */
+
+import {
+  Body,
+  Controller,
+  Get,
+  NotFoundException,
+  Param,
+  ParseIntPipe,
+  Post,
+  Query,
+  Req,
+  Res,
+  UseGuards,
+} from '@nestjs/common';
+import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
+import type { Request, Response } from 'express';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
+import { Public } from '../auth/decorators/public.decorator';
+import { serveApkFile } from '../../utils/file-serve.util';
+import { AppUpdateService } from './app-update.service';
+import { CheckUpdateQueryDto } from './dto/check-update-query.dto';
+import { ReportEventDto } from './dto/report-event.dto';
+
+@ApiTags('APP 更新（客户端）')
+@Controller('app-updates')
+@UseGuards(JwtAuthGuard)
+@Public()
+export class AppUpdateClientController {
+  constructor(private readonly service: AppUpdateService) {}
+
+  @Get('check')
+  @ApiOperation({ summary: '版本检查：以客户端上报 versionCode 为判定基准' })
+  async check(@Query() query: CheckUpdateQueryDto, @Req() req: Request) {
+    return await this.service.checkUpdate(query, req);
+  }
+
+  @Get('download/:id')
+  @ApiOperation({ summary: '下载 APK 安装包（支持 HTTP Range 断点续传）' })
+  @ApiParam({ name: 'id', description: '版本记录 ID' })
+  async download(
+    @Param('id', ParseIntPipe) id: number,
+    @Req() req: Request,
+    @Res() res: Response,
+  ) {
+    const record = await this.service.getDownloadable(id);
+    const fullPath = this.service.resolveApkPath(record);
+    try {
+      await serveApkFile(fullPath, req, res, {
+        etag: `"apk-${record.id}-${record.checksum.slice(0, 16)}"`,
+      });
+    } catch {
+      // 响应可能已开始写出，此处仅在 stat/读流失败（文件缺失）时抛出
+      if (!res.headersSent) {
+        throw new NotFoundException('安装包文件缺失');
+      }
+    }
+  }
+
+  @Post('report')
+  @ApiOperation({ summary: '升级事件上报（失败客户端无感）' })
+  async report(@Body() dto: ReportEventDto) {
+    return await this.service.reportEvent(dto);
+  }
+}

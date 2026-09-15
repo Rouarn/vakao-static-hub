@@ -12,6 +12,7 @@ import { RootsModule } from './modules/roots/roots.module';
 import { PhotoModule } from './modules/photo/photo.module';
 import { PlaceholderModule } from './modules/placeholder/placeholder.module';
 import { HitokotoModule } from './modules/hitokoto/hitokoto.module';
+import { AppUpdateModule } from './modules/app-update/app-update.module';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { HitokotoModule } from './modules/hitokoto/hitokoto.module';
     PhotoModule,
     PlaceholderModule,
     HitokotoModule,
+    AppUpdateModule,
   ],
   controllers: [AppController],
   providers: [AppService],

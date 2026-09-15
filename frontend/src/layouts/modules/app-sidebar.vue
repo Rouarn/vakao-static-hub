@@ -11,6 +11,7 @@ import {
   SparklesOutline,
   EyeOutline,
   LinkOutline,
+  CloudDownloadOutline,
 } from '@vicons/ionicons5';
 import { useFileListStore } from '@/stores/modules/file-list';
 
@@ -29,6 +30,7 @@ const emit = defineEmits<{
 
 const SYSTEM_MENUS = [
   { key: 'share-links', label: '分享链接 Share Links', icon: LinkOutline },
+  { key: 'app-update', label: 'APP 版本管理', icon: CloudDownloadOutline },
   { key: 'api-docs', label: 'API 接口文档', icon: CodeSlashOutline },
   { key: 'local-file-preview', label: '文件预览 Preview', icon: EyeOutline },
   {

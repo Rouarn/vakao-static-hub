@@ -40,3 +40,57 @@ export interface LoginResponse {
 export type ViewMode = 'grid' | 'list';
 export type SortField = 'name' | 'size' | 'mtime';
 export type SortOrder = 'asc' | 'desc';
+
+/** APP 版本状态：0 草稿 / 1 灰度 / 2 全量 / 3 已下架 */
+export type AppVersionStatus = 0 | 1 | 2 | 3;
+
+export interface AppVersion {
+  id: number;
+  platform: string;
+  /** 应用标识（apk 根下的分类目录名，如 xiaolv / xiaolan） */
+  appKey: string;
+  versionName: string;
+  versionCode: number;
+  updateType: string;
+  packageSize: number;
+  checksum: string;
+  storageRootId: string;
+  category: string;
+  relPath: string;
+  updateLog: string | null;
+  forceUpdate: number;
+  minVersionCode: number;
+  grayPercent: number;
+  status: AppVersionStatus;
+  publishTime: number | null;
+  remark: string | null;
+  createdAt: number;
+  updatedAt: number;
+  isDeleted: number;
+}
+
+export type UpgradeEventName =
+  | 'check_no_update'
+  | 'prompt_show'
+  | 'download_start'
+  | 'download_success'
+  | 'download_fail'
+  | 'verify_fail'
+  | 'install_success'
+  | 'install_fail'
+  | 'new_version_launch';
+
+export interface AppUpgradeEvent {
+  id: number;
+  deviceId: string;
+  appKey: string;
+  fromVersionCode: number | null;
+  toVersionCode: number | null;
+  event: UpgradeEventName;
+  failCode: string | null;
+  networkType: string | null;
+  osVersion: string | null;
+  deviceModel: string | null;
+  costMs: number | null;
+  createdAt: number;
+}

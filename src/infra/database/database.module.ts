@@ -5,6 +5,8 @@ import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { FileEntryEntity } from './entities/file-entry.entity';
 import { ShareLinkEntity } from './entities/share-link.entity';
+import { AppVersionEntity } from './entities/app-version.entity';
+import { AppUpgradeEventEntity } from './entities/app-upgrade-event.entity';
 
 @Module({
   imports: [
@@ -19,7 +21,12 @@ import { ShareLinkEntity } from './entities/share-link.entity';
           type: 'better-sqlite3' as const,
           database,
           synchronize: configService.get<boolean>('db.synchronize') ?? true,
-          entities: [FileEntryEntity, ShareLinkEntity],
+          entities: [
+            FileEntryEntity,
+            ShareLinkEntity,
+            AppVersionEntity,
+            AppUpgradeEventEntity,
+          ],
         };
       },
     }),

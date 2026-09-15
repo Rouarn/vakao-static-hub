@@ -47,6 +47,12 @@ export const builtinChildren: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: 'app-update',
+    name: 'app-update',
+    component: () => import('@/views/app-update/index.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: 'local-file-preview',
     name: 'local-file-preview',
     component: () => import('@/views/file-preview/index.vue'),

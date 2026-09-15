@@ -3,7 +3,9 @@ dist
 node_modules
 build
 resources
+apk
 deploy
+docs
 resources.json
 
 # Logs
