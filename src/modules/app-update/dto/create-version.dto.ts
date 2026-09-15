@@ -11,7 +11,7 @@ import {
 
 export class CreateVersionDto {
   @ApiProperty({
-    description: '应用标识（apk 根下的分类目录名）',
+    description: '应用标识（software-update 根下的分类目录名）',
     example: 'xiaolv',
   })
   @IsString()

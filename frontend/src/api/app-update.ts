@@ -10,7 +10,7 @@ export interface ListVersionsParams {
   appKey?: string;
 }
 
-/** 获取全部应用标识（apk 根下的分类目录） */
+/** 获取全部应用标识（software-update 根下的分类目录） */
 export function getApps() {
   return get<string[]>('/app-updates/apps');
 }

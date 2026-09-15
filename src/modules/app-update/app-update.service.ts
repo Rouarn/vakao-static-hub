@@ -1,8 +1,8 @@
 /**
  * APP 在线更新服务（多应用）
  *
- * 存储模型：apk 资源根（与 resources 同级）下每个应用一个目录——
- *   apk/{appKey}/v{versionCode}_{versionName}.apk
+ * 存储模型：software-update 资源根（与 resources 同级）下每个应用一个目录——
+ *   software-update/{appKey}/v{versionCode}_{versionName}.apk
  * appKey 即资源分类名（xiaolv / xiaolan…），每个应用独立维护版本序列、灰度与强更。
  *
  * 能力：应用目录管理、版本检查（versionCode 判定 + 灰度 + 强更）、
@@ -41,8 +41,8 @@ import {
 import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service';
 import { safeJoin } from '../files/utils/path-utils';
 import {
-  APK_ROOT_ID,
-  APK_ROOT_PATH,
+  SOFTWARE_UPDATE_ROOT_ID,
+  SOFTWARE_UPDATE_ROOT_PATH,
   ENV_PUBLIC_BASE_URL,
 } from './app-update.constants';
 import { CheckUpdateQueryDto } from './dto/check-update-query.dto';
@@ -66,16 +66,16 @@ export class AppUpdateService implements OnModuleInit {
     private readonly configService: ConfigService,
   ) {}
 
-  /** 幂等注册 APK 专用资源根（与 resources 同级） */
+  /** 幂等注册软件更新专用资源根（与 resources 同级） */
   async onModuleInit() {
-    if (!this.resourceRoots.getRoot(APK_ROOT_ID)) {
+    if (!this.resourceRoots.getRoot(SOFTWARE_UPDATE_ROOT_ID)) {
       await this.resourceRoots.addRoot({
-        id: APK_ROOT_ID,
+        id: SOFTWARE_UPDATE_ROOT_ID,
         name: 'APP 更新包',
-        path: APK_ROOT_PATH,
+        path: SOFTWARE_UPDATE_ROOT_PATH,
       });
     }
-    await mkdir(this.resourceRoots.resolveRootPath(APK_ROOT_ID), {
+    await mkdir(this.resourceRoots.resolveRootPath(SOFTWARE_UPDATE_ROOT_ID), {
       recursive: true,
     });
     await mkdir(APK_TMP_DIR, { recursive: true });
@@ -83,9 +83,11 @@ export class AppUpdateService implements OnModuleInit {
 
   // ==================== 应用（资源分类）管理 ====================
 
-  /** 列出 apk 根下的全部应用（即资源分类目录） */
+  /** 列出 software-update 根下的全部应用（即资源分类目录） */
   async listApps() {
-    const rootPath = this.resourceRoots.resolveRootPath(APK_ROOT_ID);
+    const rootPath = this.resourceRoots.resolveRootPath(
+      SOFTWARE_UPDATE_ROOT_ID,
+    );
     await mkdir(rootPath, { recursive: true });
     const dirs = await readdir(rootPath, { withFileTypes: true });
     return dirs
@@ -96,7 +98,9 @@ export class AppUpdateService implements OnModuleInit {
 
   /** 新建应用目录（幂等：已存在则 409，避免误覆盖已有应用） */
   async createApp(appKey: string) {
-    const rootPath = this.resourceRoots.resolveRootPath(APK_ROOT_ID);
+    const rootPath = this.resourceRoots.resolveRootPath(
+      SOFTWARE_UPDATE_ROOT_ID,
+    );
     const targetPath = safeJoin(rootPath, [appKey]);
     try {
       await access(targetPath, constants.F_OK);
@@ -255,9 +259,10 @@ export class AppUpdateService implements OnModuleInit {
     const appKey = dto.appKey;
 
     // 应用目录必须先创建（显式注册），避免上传误建拼写错误的应用
-    const appPath = safeJoin(this.resourceRoots.resolveRootPath(APK_ROOT_ID), [
-      appKey,
-    ]);
+    const appPath = safeJoin(
+      this.resourceRoots.resolveRootPath(SOFTWARE_UPDATE_ROOT_ID),
+      [appKey],
+    );
     try {
       await access(appPath, constants.F_OK);
     } catch {
@@ -278,7 +283,9 @@ export class AppUpdateService implements OnModuleInit {
     try {
       await this.assertApkMagic(tmpPath);
 
-      const rootPath = this.resourceRoots.resolveRootPath(APK_ROOT_ID);
+      const rootPath = this.resourceRoots.resolveRootPath(
+        SOFTWARE_UPDATE_ROOT_ID,
+      );
       // 文件名含版本号，永不覆盖旧文件（防"新 URL 旧内容"）
       const filename = `v${dto.versionCode}_${dto.versionName}.apk`;
       await mkdir(safeJoin(rootPath, [appKey]), { recursive: true });
@@ -303,7 +310,7 @@ export class AppUpdateService implements OnModuleInit {
         // 同步文件管理器索引，保持存储体系统一
         await this.fileEntryRepo.upsert(
           {
-            rootId: APK_ROOT_ID,
+            rootId: SOFTWARE_UPDATE_ROOT_ID,
             category: appKey,
             relPath: filename,
             name: filename,
@@ -324,7 +331,7 @@ export class AppUpdateService implements OnModuleInit {
             updateType: 'apk',
             packageSize: s.size,
             checksum,
-            storageRootId: APK_ROOT_ID,
+            storageRootId: SOFTWARE_UPDATE_ROOT_ID,
             category: appKey,
             relPath: filename,
             updateLog: dto.updateLog ?? null,

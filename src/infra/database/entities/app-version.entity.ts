@@ -2,9 +2,9 @@
  * APP 版本实体
  * 存储安卓安装包版本的元数据，支撑多应用的在线更新、发布与下架
  *
- * 存储结构：apk 资源根（与 resources 同级）下按应用分目录——
- *   apk/{appKey}/v{versionCode}_{versionName}.apk
- * appKey 即 apk 根下的资源分类（如 xiaolv、xiaolan），每个应用独立维护版本序列
+ * 存储结构：software-update 资源根（与 resources 同级）下按应用分目录——
+ *   software-update/{appKey}/v{versionCode}_{versionName}.apk
+ * appKey 即 software-update 根下的资源分类（如 xiaolv、xiaolan），每个应用独立维护版本序列
  */
 
 import { Column, Entity, Index, PrimaryGeneratedColumn } from 'typeorm';
@@ -28,7 +28,7 @@ export class AppVersionEntity {
   @Column({ type: 'varchar', length: 16, default: 'android' })
   platform!: string;
 
-  /** 应用标识（apk 资源根下的分类目录名，如 xiaolv / xiaolan） */
+  /** 应用标识（software-update 资源根下的分类目录名，如 xiaolv / xiaolan） */
   @Column({ type: 'varchar', length: 64 })
   appKey!: string;
 
@@ -52,8 +52,8 @@ export class AppVersionEntity {
   @Column({ type: 'varchar', length: 64 })
   checksum!: string;
 
-  /** 存储资源根目录 ID（apk 专用根，与 resources 同级） */
-  @Column({ type: 'varchar', length: 64, default: 'apk' })
+  /** 存储资源根目录 ID（软件更新专用根，与 resources 同级） */
+  @Column({ type: 'varchar', length: 64, default: 'software-update' })
   storageRootId!: string;
 
   /** 所属应用目录名（等于 appKey） */

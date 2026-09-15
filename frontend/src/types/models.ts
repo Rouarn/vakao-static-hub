@@ -47,7 +47,7 @@ export type AppVersionStatus = 0 | 1 | 2 | 3;
 export interface AppVersion {
   id: number;
   platform: string;
-  /** 应用标识（apk 根下的分类目录名，如 xiaolv / xiaolan） */
+  /** 应用标识（software-update 根下的分类目录名，如 xiaolv / xiaolan） */
   appKey: string;
   versionName: string;
   versionCode: number;

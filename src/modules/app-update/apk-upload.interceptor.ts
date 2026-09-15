@@ -13,9 +13,14 @@ import { diskStorage } from 'multer';
 import { randomUUID } from 'node:crypto';
 import { mkdirSync } from 'node:fs';
 import { join } from 'node:path';
+import { SOFTWARE_UPDATE_ROOT_PATH } from './app-update.constants';
 
-/** APK 上传临时目录（位于 apk 根下，与最终归档同盘，便于原子改名/流式写入） */
-export const APK_TMP_DIR = join(process.cwd(), 'apk', '.apk-tmp');
+/** APK 上传临时目录（位于 software-update 根下，与最终归档同盘，便于原子改名/流式写入） */
+export const APK_TMP_DIR = join(
+  process.cwd(),
+  SOFTWARE_UPDATE_ROOT_PATH,
+  '.apk-tmp',
+);
 
 /** 单包大小上限 500MB */
 export const APK_MAX_SIZE = 500 * 1024 * 1024;

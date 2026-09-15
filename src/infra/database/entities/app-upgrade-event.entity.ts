@@ -21,7 +21,7 @@ export class AppUpgradeEventEntity {
   @Column({ type: 'varchar', length: 128 })
   deviceId!: string;
 
-  /** 应用标识（对应 apk 根下的分类目录名） */
+  /** 应用标识（对应 software-update 根下的分类目录名） */
   @Column({ type: 'varchar', length: 64, default: 'default' })
   appKey!: string;
 

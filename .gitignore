@@ -3,7 +3,7 @@ dist
 node_modules
 build
 resources
-apk
+software-update
 deploy
 docs
 resources.json

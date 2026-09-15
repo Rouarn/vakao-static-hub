@@ -495,7 +495,7 @@ onMounted(() => {
           APP 版本管理
         </h2>
         <span class="text-xs text-gray-500">
-          APK 根目录下每个应用独立维护版本 · 灰度 · 强更 · 下架止血
+          software-update 根目录下每个应用独立维护版本 · 灰度 · 强更 · 下架止血
         </span>
       </div>
 
@@ -597,7 +597,7 @@ onMounted(() => {
         </NFormItem>
       </NForm>
       <p class="text-xs text-gray-400 -mt-2">
-        将在 apk 资源根下创建同名目录，该应用的安装包全部归档于此
+        将在 software-update 资源根下创建同名目录，该应用的安装包全部归档于此
       </p>
       <template #footer>
         <div class="flex justify-end gap-2">
