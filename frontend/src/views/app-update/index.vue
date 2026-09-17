@@ -564,7 +564,11 @@ onMounted(() => {
         :pagination="pagination"
         remote
         class="rounded-xl shadow-sm"
-      />
+      >
+        <template #empty>
+          <NEmpty description="暂无版本数据" />
+        </template>
+      </NDataTable>
     </template>
 
     <div v-else class="py-20">
