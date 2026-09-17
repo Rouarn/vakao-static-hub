@@ -3,7 +3,7 @@
   "version": "0.0.1",
   "private": true,
   "scripts": {
-    "dev": "concurrently -n backend,frontend -c green,blue \"pnpm --filter @vakao/backend dev\" \"pnpm --filter @vakao/frontend dev\"",
+    "dev": "pnpm --filter @vakao/shared build && concurrently -n shared,backend,frontend -c magenta,green,blue \"pnpm --filter @vakao/shared dev\" \"pnpm --filter @vakao/backend dev\" \"pnpm --filter @vakao/frontend dev\"",
     "dev:backend": "pnpm --filter @vakao/backend dev",
     "dev:frontend": "pnpm --filter @vakao/frontend dev",
     "build": "pnpm -r --filter @vakao/shared --filter @vakao/backend --filter @vakao/frontend build",
@@ -26,22 +26,8 @@
     "prettier": "^3.8.4",
     "typescript-eslint": "^8"
   },
-  "packageManager": "pnpm@10.0.0",
   "engines": {
     "node": ">=20.0.0",
     "pnpm": ">=10.0.0"
-  },
-  "pnpm": {
-    "onlyBuiltDependencies": [
-      "@nestjs/core",
-      "@parcel/watcher",
-      "@scarf/scarf",
-      "better-sqlite3",
-      "canvas",
-      "esbuild",
-      "sharp",
-      "sqlite3",
-      "unrs-resolver"
-    ]
   }
 }

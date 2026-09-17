@@ -11,8 +11,8 @@
     }
   },
   "scripts": {
-    "build": "tsc -b",
-    "dev": "tsc -b --watch",
+    "build": "tsc -b --force",
+    "dev": "tsc -b --watch --force",
     "typecheck": "tsc -b --noEmit",
     "lint": "eslint src --fix",
     "format": "prettier --write src/"
