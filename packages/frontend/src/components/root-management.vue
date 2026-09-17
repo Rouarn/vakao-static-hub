@@ -375,7 +375,10 @@ onMounted(() => {});
                             quaternary
                             circle
                             @click="handleEdit(root)"
-                            :disabled="root.id === 'default'"
+                            :disabled="
+                              root.id === 'default' ||
+                              root.id === 'software-update'
+                            "
                           >
                             <template #icon>
                               <NIcon><CreateOutline /></NIcon>
@@ -383,7 +386,9 @@ onMounted(() => {});
                           </NButton>
                         </template>
                         {{
-                          root.id === 'default' ? '默认目录不可编辑' : '编辑'
+                          root.id === 'default' || root.id === 'software-update'
+                            ? '默认目录不可编辑'
+                            : '编辑'
                         }}
                       </NTooltip>
 
@@ -453,14 +458,6 @@ onMounted(() => {});
     :bordered="false"
     size="medium"
   >
-    <template #header-extra>
-      <NButton text circle @click="showBrowser = false">
-        <template #icon>
-          <NIcon><CloseCircleOutline /></NIcon>
-        </template>
-      </NButton>
-    </template>
-
     <div class="flex flex-col h-[450px]">
       <div
         class="flex items-center gap-2 mb-3 bg-container p-2 rounded border border-base"

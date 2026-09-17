@@ -1,8 +1,15 @@
-import { Injectable } from '@nestjs/common';
+import { Injectable, UnauthorizedException } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
+import { AuthService } from './auth.service';
+
+/** JWT 载荷：sub 为用户 ID 字符串，username 为用户名 */
+interface JwtPayload {
+  sub?: string;
+  username?: string;
+}
 
 /**
  * JWT 认证策略
@@ -10,7 +17,10 @@ import type { Request } from 'express';
  */
 @Injectable()
 export class JwtStrategy extends PassportStrategy(Strategy) {
-  constructor(configService: ConfigService) {
+  constructor(
+    configService: ConfigService,
+    private readonly authService: AuthService,
+  ) {
     super({
       // 自定义 JWT 提取逻辑
       jwtFromRequest: ExtractJwt.fromExtractors([
@@ -42,8 +52,17 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   /**
    * 验证回调
    * JWT 验证通过后调用，返回值将被注入到 req.user 中
+   * 同时会校验用户仍然存在于 users 表，已删除用户的旧令牌立即失效
    */
-  validate(payload: { sub?: string }) {
-    return { userId: payload.sub };
+  async validate(payload: JwtPayload) {
+    const userId = Number(payload?.sub);
+    if (!Number.isInteger(userId)) {
+      throw new UnauthorizedException();
+    }
+    const user = await this.authService.findById(userId);
+    if (!user) {
+      throw new UnauthorizedException('用户不存在或已被删除');
+    }
+    return { userId: user.id, username: user.username };
   }
 }

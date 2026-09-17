@@ -7,6 +7,7 @@ import { FileEntryEntity } from './entities/file-entry.entity';
 import { ShareLinkEntity } from './entities/share-link.entity';
 import { AppVersionEntity } from './entities/app-version.entity';
 import { AppUpgradeEventEntity } from './entities/app-upgrade-event.entity';
+import { UserEntity } from './entities/user.entity';
 
 @Module({
   imports: [
@@ -26,6 +27,7 @@ import { AppUpgradeEventEntity } from './entities/app-upgrade-event.entity';
             ShareLinkEntity,
             AppVersionEntity,
             AppUpgradeEventEntity,
+            UserEntity,
           ],
         };
       },

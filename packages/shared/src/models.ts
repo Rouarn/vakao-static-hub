@@ -37,10 +37,24 @@ export interface CreateShareLinkParams {
   maxAccesses?: number;
 }
 
+/** 登录用户基础信息（不含密码等敏感字段） */
+export interface UserInfo {
+  id: number;
+  username: string;
+  createdAt: number;
+}
+
+/** 注册请求参数 */
+export interface RegisterParams {
+  username: string;
+  password: string;
+}
+
 export interface LoginResponse {
   accessToken: string;
   tokenType: 'Bearer';
   expiresIn: string;
+  user: UserInfo;
 }
 
 export type ViewMode = 'grid' | 'list';

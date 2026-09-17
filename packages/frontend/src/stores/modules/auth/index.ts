@@ -1,22 +1,26 @@
 import { defineStore } from 'pinia';
 import { computed, ref } from 'vue';
+import type { UserInfo } from '@vakao/shared';
 
 /**
  * 认证状态管理 Store
- * 管理用户登录状态和 AccessToken
+ * 管理用户登录状态、AccessToken 与当前用户信息
  * 使用 pinia-plugin-persistedstate 实现持久化
  */
 export const useAuthStore = defineStore(
   'auth',
   () => {
     const accessToken = ref('');
+    const userInfo = ref<UserInfo | null>(null);
     const isLoggedIn = computed(() => accessToken.value !== '');
+    const username = computed(() => userInfo.value?.username ?? '');
 
     /**
-     * 设置访问令牌
+     * 保存登录态（令牌 + 用户信息）
      */
-    function setAccessToken(token: string) {
+    function setAuth(token: string, user: UserInfo) {
       accessToken.value = token;
+      userInfo.value = user;
     }
 
     /**
@@ -24,12 +28,15 @@ export const useAuthStore = defineStore(
      */
     function clearAuth() {
       accessToken.value = '';
+      userInfo.value = null;
     }
 
     return {
       isLoggedIn,
       accessToken,
-      setAccessToken,
+      userInfo,
+      username,
+      setAuth,
       clearAuth,
     };
   },

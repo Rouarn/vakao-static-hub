@@ -11,9 +11,12 @@ import {
   SunnyOutline,
 } from '@vicons/ionicons5';
 import { useDark, useToggle } from '@vueuse/core';
+import { useAuthStore } from '@/stores/modules/auth';
 
 const isDark = useDark();
 const toggleDark = useToggle(isDark);
+
+const authStore = useAuthStore();
 
 const emit = defineEmits<{
   (e: 'toggleSidebar'): void;
@@ -93,7 +96,7 @@ const emit = defineEmits<{
           <NIcon><PersonCircleOutline /></NIcon>
         </div>
         <span class="hidden sm:inline text-sm font-medium text-base">
-          Admin
+          {{ authStore.userInfo?.username || '用户' }}
         </span>
         <NButton
           quaternary
