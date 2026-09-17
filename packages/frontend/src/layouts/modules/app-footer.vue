@@ -14,7 +14,7 @@ const year = new Date().getFullYear();
     <span>&copy; {{ year }} StaticHub</span>
     <span>
       <a
-        :href="`${baseURL}/photo/${store.currentRootId}/${store.currentCategory}`"
+        :href="`${baseURL}/photo?rootId=${store.currentRootId}&category=${store.currentCategory}`"
         target="_blank"
         rel="noreferrer"
         class="text-primary hover:underline"

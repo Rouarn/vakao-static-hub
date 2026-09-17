@@ -1,15 +1,12 @@
 import {
   Controller,
   Get,
-  Post,
   Res,
-  UseGuards,
   Query,
   BadRequestException,
 } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiQuery } from '@nestjs/swagger';
 import type { Response } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
 import { Public } from '../auth/decorators/public.decorator';
 import { PhotoService } from './photo.service';
 
@@ -17,14 +14,6 @@ import { PhotoService } from './photo.service';
 @Controller('photo')
 export class PhotoController {
   constructor(private readonly service: PhotoService) {}
-
-  @Post('refresh-cache')
-  @UseGuards(JwtAuthGuard)
-  @ApiOperation({ summary: '刷新图片缓存' })
-  async refreshCache() {
-    await this.service.refreshImageCache();
-    return { message: 'ok' };
-  }
 
   @Public()
   @Get()

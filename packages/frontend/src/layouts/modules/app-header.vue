@@ -69,7 +69,7 @@ const emit = defineEmits<{
       <NButton
         quaternary
         class="border border-base text-gray-500 hover:bg-container transition-all"
-        title="刷新图片缓存"
+        title="刷新文件缓存"
         @click="emit('refreshCache')"
       >
         <template #icon>

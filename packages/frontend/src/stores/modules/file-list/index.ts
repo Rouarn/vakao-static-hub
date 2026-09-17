@@ -7,7 +7,7 @@ import {
   getCategories,
   getFiles,
   deleteFile as apiDeleteFile,
-  refreshPhotoCache,
+  syncFileIndex,
 } from '@/api/files';
 import type {
   ResourceRoot,
@@ -127,7 +127,7 @@ export const useFileListStore = defineStore('file-list', () => {
 
   async function handleRefreshCache() {
     try {
-      await refreshPhotoCache();
+      await syncFileIndex();
       await loadFiles();
       return true;
     } catch {

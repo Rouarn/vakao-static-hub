@@ -28,19 +28,19 @@
 
 ## 技术栈
 
-| 层级 | 技术 |
-|------|------|
-| 运行时 | Node.js >= 18 |
-| 框架 | NestJS 11 |
-| 语言 | TypeScript 5.x |
-| 数据库 | SQLite (better-sqlite3 + TypeORM) |
-| 认证 | @nestjs/jwt + passport-jwt |
-| 图片处理 | Sharp |
-| 定时任务 | @nestjs/schedule |
-| 事件 | @nestjs/event-emitter |
-| API 文档 | @nestjs/swagger |
-| 前端 | Vue 3 + Vite + NaiveUI（见 [frontend/README.md](./frontend/README.md)） |
-| 包管理 | pnpm (workspace monorepo) |
+| 层级     | 技术                                                                    |
+| -------- | ----------------------------------------------------------------------- |
+| 运行时   | Node.js >= 18                                                           |
+| 框架     | NestJS 11                                                               |
+| 语言     | TypeScript 5.x                                                          |
+| 数据库   | SQLite (better-sqlite3 + TypeORM)                                       |
+| 认证     | @nestjs/jwt + passport-jwt                                              |
+| 图片处理 | Sharp                                                                   |
+| 定时任务 | @nestjs/schedule                                                        |
+| 事件     | @nestjs/event-emitter                                                   |
+| API 文档 | @nestjs/swagger                                                         |
+| 前端     | Vue 3 + Vite + NaiveUI（见 [frontend/README.md](./frontend/README.md)） |
+| 包管理   | pnpm (workspace monorepo)                                               |
 
 ---
 
@@ -65,11 +65,11 @@ pnpm run dev
 
 默认端口：
 
-| 服务 | 地址 | 说明 |
-|------|------|------|
-| 后端 API | http://localhost:9865 | 所有接口前缀 `/api` |
-| 前端 | http://localhost:9867 | 开发服务器 |
-| API 文档 | http://localhost:9865/docs | Swagger UI |
+| 服务     | 地址                             | 说明                    |
+| -------- | -------------------------------- | ----------------------- |
+| 后端 API | http://localhost:9865            | 所有接口前缀 `/api`     |
+| 前端     | http://localhost:9867            | 开发服务器              |
+| API 文档 | http://localhost:9865/docs       | Swagger UI              |
 | 健康检查 | http://localhost:9865/api/health | 返回 `{ status: "ok" }` |
 
 ---
@@ -80,47 +80,47 @@ pnpm run dev
 
 ### 服务器
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `PORT` | `9865` | 后端监听端口 |
-| `BODY_LIMIT` | `10485760` (10MB) | 请求体大小限制（字节） |
-| `STATIC_PREFIX` | `/static` | 静态文件 URL 前缀 |
+| 变量            | 默认值            | 说明                   |
+| --------------- | ----------------- | ---------------------- |
+| `PORT`          | `9865`            | 后端监听端口           |
+| `BODY_LIMIT`    | `10485760` (10MB) | 请求体大小限制（字节） |
+| `STATIC_PREFIX` | `/static`         | 静态文件 URL 前缀      |
 
 ### 认证
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `AUTH_USER` | `admin` | 登录用户名 |
-| `AUTH_PASS` | `admin` | 登录密码 |
-| `JWT_SECRET` | `change-me-in-env` | JWT 签名密钥（生产环境务必修改） |
-| `JWT_EXPIRES_IN` | `12h` | Token 过期时间 |
+| 变量             | 默认值             | 说明                             |
+| ---------------- | ------------------ | -------------------------------- |
+| `AUTH_USER`      | `admin`            | 登录用户名                       |
+| `AUTH_PASS`      | `admin`            | 登录密码                         |
+| `JWT_SECRET`     | `change-me-in-env` | JWT 签名密钥（生产环境务必修改） |
+| `JWT_EXPIRES_IN` | `12h`              | Token 过期时间                   |
 
 ### 数据库
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `DB_PATH` | `resources/vakao.db` | SQLite 文件路径 |
-| `DB_SYNCHRONIZE` | `true` | 是否自动建表 |
+| 变量             | 默认值               | 说明            |
+| ---------------- | -------------------- | --------------- |
+| `DB_PATH`        | `resources/vakao.db` | SQLite 文件路径 |
+| `DB_SYNCHRONIZE` | `true`               | 是否自动建表    |
 
 ### 文件
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `FILE_ROOT` | `resources/` | 文件存储根目录 |
-| `UPLOAD_MAX_COUNT` | `20` | 单次上传最大文件数 |
-| `DEFAULT_CATEGORY` | `TemporaryFile` | 默认分类目录名 |
+| 变量               | 默认值          | 说明               |
+| ------------------ | --------------- | ------------------ |
+| `FILE_ROOT`        | `resources/`    | 文件存储根目录     |
+| `UPLOAD_MAX_COUNT` | `20`            | 单次上传最大文件数 |
+| `DEFAULT_CATEGORY` | `TemporaryFile` | 默认分类目录名     |
 
 ### 定时任务
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
+| 变量                        | 默认值          | 说明                 |
+| --------------------------- | --------------- | -------------------- |
 | `CACHE_REFRESH_INTERVAL_MS` | `300000` (5min) | 缓存刷新间隔（毫秒） |
 
 ### 一言代理
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `HITOKOTO_API_URL` | `''` | 一言 API 目标地址 |
+| 变量               | 默认值 | 说明              |
+| ------------------ | ------ | ----------------- |
+| `HITOKOTO_API_URL` | `''`   | 一言 API 目标地址 |
 
 ---
 
@@ -209,78 +209,78 @@ src/
 
 ### 认证
 
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| POST | `/auth/login` | 登录，返回 JWT | 否 |
+| 方法 | 路径          | 说明           | 认证 |
+| ---- | ------------- | -------------- | ---- |
+| POST | `/auth/login` | 登录，返回 JWT | 否   |
 
 ### 资源根目录
 
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/roots` | 获取所有根目录 | 是 |
-| POST | `/roots` | 添加根目录 | 是 |
-| PATCH | `/roots/:id` | 更新根目录 | 是 |
-| DELETE | `/roots/:id` | 删除根目录 | 是 |
-| GET | `/roots/system/directories?path=` | 浏览服务器目录 | 是 |
+| 方法   | 路径                              | 说明           | 认证 |
+| ------ | --------------------------------- | -------------- | ---- |
+| GET    | `/roots`                          | 获取所有根目录 | 是   |
+| POST   | `/roots`                          | 添加根目录     | 是   |
+| PATCH  | `/roots/:id`                      | 更新根目录     | 是   |
+| DELETE | `/roots/:id`                      | 删除根目录     | 是   |
+| GET    | `/roots/system/directories?path=` | 浏览服务器目录 | 是   |
 
 ### 文件管理
 
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/files/:rootId/categories` | 获取分类列表 | 是 |
-| GET | `/files/:rootId/:category` | 分页查询文件列表 | 是 |
-| POST | `/files/:rootId/upload` | 上传文件 (multipart) | 是 |
-| GET | `/files/:rootId/:category/*path` | 下载/预览文件 | 否（公开） |
-| DELETE | `/files/:rootId/:category/*path` | 删除文件 | 是 |
+| 方法   | 路径                             | 说明                                         | 认证       |
+| ------ | -------------------------------- | -------------------------------------------- | ---------- |
+| GET    | `/files/:rootId/categories`      | 获取分类列表                                 | 是         |
+| GET    | `/files/:rootId/:category`       | 分页查询文件列表                             | 是         |
+| POST   | `/files/sync`                    | 强制同步文件索引（重新扫描磁盘并刷新数据库） | 是         |
+| POST   | `/files/:rootId/upload`          | 上传文件 (multipart)                         | 是         |
+| GET    | `/files/:rootId/:category/*path` | 下载/预览文件                                | 否（公开） |
+| DELETE | `/files/:rootId/:category/*path` | 删除文件                                     | 是         |
 
 **分页查询参数**：
 
-| 参数 | 默认值 | 说明 |
-|------|--------|------|
-| `page` | `1` | 页码 |
-| `pageSize` | `100` | 每页数量 |
-| `q` | - | 搜索关键词（匹配文件名和路径） |
-| `sort` | `mtime` | 排序字段：`name` / `size` / `mtime` |
-| `order` | `desc` | 排序方向：`asc` / `desc` |
+| 参数       | 默认值  | 说明                                |
+| ---------- | ------- | ----------------------------------- |
+| `page`     | `1`     | 页码                                |
+| `pageSize` | `100`   | 每页数量                            |
+| `q`        | -       | 搜索关键词（匹配文件名和路径）      |
+| `sort`     | `mtime` | 排序字段：`name` / `size` / `mtime` |
+| `order`    | `desc`  | 排序方向：`asc` / `desc`            |
 
 **文件预览/下载参数**：
 
-| 参数 | 说明 |
-|------|------|
-| `download` | 存在即强制下载 |
-| `w` | 图片缩放宽度 |
-| `h` | 图片缩放高度 |
-| `q` | 图片质量 1-100 |
-| `format` | 输出格式：webp / jpeg / png |
+| 参数       | 说明                        |
+| ---------- | --------------------------- |
+| `download` | 存在即强制下载              |
+| `w`        | 图片缩放宽度                |
+| `h`        | 图片缩放高度                |
+| `q`        | 图片质量 1-100              |
+| `format`   | 输出格式：webp / jpeg / png |
 
 **协商缓存**：GET 文件接口支持 `ETag` 和 `If-None-Match`，返回 `304`。
 
 ### 随机图片
 
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/photo` | 全局随机图片 | 否 |
-| GET | `/photo/:rootId` | 指定根目录随机图片 | 否 |
-| GET | `/photo/:width/:height` | 指定尺寸随机图片 | 否 |
-| GET | `/photo/:rootId/:category` | 指定根目录+分类随机 | 否 |
-| GET | `/photo/:rootId/:width/:height` | 指定根目录+尺寸随机 | 否 |
-| GET | `/photo/:rootId/:category/:width/:height` | 指定根目录+分类+尺寸随机 | 否 |
-| POST | `/photo/refresh-cache` | 手动刷新图片缓存 | 是 |
+| 方法 | 路径                                      | 说明                     | 认证 |
+| ---- | ----------------------------------------- | ------------------------ | ---- |
+| GET  | `/photo`                                  | 全局随机图片             | 否   |
+| GET  | `/photo/:rootId`                          | 指定根目录随机图片       | 否   |
+| GET  | `/photo/:width/:height`                   | 指定尺寸随机图片         | 否   |
+| GET  | `/photo/:rootId/:category`                | 指定根目录+分类随机      | 否   |
+| GET  | `/photo/:rootId/:width/:height`           | 指定根目录+尺寸随机      | 否   |
+| GET  | `/photo/:rootId/:category/:width/:height` | 指定根目录+分类+尺寸随机 | 否   |
 
 ### 占位图
 
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| GET | `/placeholder` | 默认 300×150 | 否 |
-| GET | `/placeholder?width=&height=&text=&bgColor=&textColor=&fontFamily=&fontWeight=&fontSize=` | 自定义占位图 | 否 |
-| GET | `/placeholder/:size` | 正方形占位图 | 否 |
-| GET | `/placeholder/:width/:height` | 自定义尺寸占位图 | 否 |
+| 方法 | 路径                                                                                      | 说明             | 认证 |
+| ---- | ----------------------------------------------------------------------------------------- | ---------------- | ---- |
+| GET  | `/placeholder`                                                                            | 默认 300×150     | 否   |
+| GET  | `/placeholder?width=&height=&text=&bgColor=&textColor=&fontFamily=&fontWeight=&fontSize=` | 自定义占位图     | 否   |
+| GET  | `/placeholder/:size`                                                                      | 正方形占位图     | 否   |
+| GET  | `/placeholder/:width/:height`                                                             | 自定义尺寸占位图 | 否   |
 
 ### 一言
 
-| 方法 | 路径 | 说明 | 认证 |
-|------|------|------|------|
-| ALL | `/hitokoto/*path` | 代理转发到一言服务 | 否 |
+| 方法 | 路径              | 说明               | 认证 |
+| ---- | ----------------- | ------------------ | ---- |
+| ALL  | `/hitokoto/*path` | 代理转发到一言服务 | 否   |
 
 ---
 
@@ -320,6 +320,7 @@ src/
 ### SPA 回退中间件
 
 `main.ts` 中注册了一个 Express 中间件：
+
 - 无文件扩展名 **且** 非 `/api` `/docs` 路径 **且** Accept 包含 `text/html` 的 GET 请求 → 返回 `index.html`
 - 其他请求正常处理
 
@@ -334,6 +335,7 @@ pnpm run deploy
 ```
 
 执行 `script/deploy.js`，依次：
+
 1. 清理并初始化 `deploy/` 目录
 2. 构建后端 NestJS → `deploy/server/`
 3. 构建前端 Vite（`VITE_API_BASE_URL=origin`）→ `deploy/web/`
@@ -383,15 +385,15 @@ chmod +x install.sh start.sh
 
 ## 开发命令
 
-| 命令 | 说明 |
-|------|------|
-| `pnpm install` | 安装所有依赖 |
+| 命令                  | 说明                     |
+| --------------------- | ------------------------ |
+| `pnpm install`        | 安装所有依赖             |
 | `pnpm approve-builds` | 允许 better-sqlite3 编译 |
-| `pnpm start:dev` | 启动后端（开发热重载） |
-| `pnpm start:frontend` | 启动前端（开发热重载） |
-| `pnpm dev` | 同时启动前后端 |
-| `pnpm build` | 构建后端 |
-| `pnpm typecheck` | 前后端类型检查 |
-| `pnpm lint` | ESLint 校验 |
-| `pnpm format` | Prettier 格式化 |
-| `pnpm deploy` | 一键打包部署 |
+| `pnpm start:dev`      | 启动后端（开发热重载）   |
+| `pnpm start:frontend` | 启动前端（开发热重载）   |
+| `pnpm dev`            | 同时启动前后端           |
+| `pnpm build`          | 构建后端                 |
+| `pnpm typecheck`      | 前后端类型检查           |
+| `pnpm lint`           | ESLint 校验              |
+| `pnpm format`         | Prettier 格式化          |
+| `pnpm deploy`         | 一键打包部署             |

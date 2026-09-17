@@ -33,6 +33,8 @@ import { ImageProcessorService } from './image-processor.service';
 import { getMimeType } from './utils/mime-types';
 import { ConfigurableFilesInterceptor } from '../../common/interceptors/configurable-files.interceptor';
 import { serveStaticFile } from '../../utils/file-serve.util';
+import { FileIndexService } from './file-index.service';
+import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @ApiTags('文件管理')
 @Controller('files')
@@ -41,6 +43,8 @@ export class FilesController {
   constructor(
     private readonly service: FilesService,
     private readonly imageProcessor: ImageProcessorService,
+    private readonly fileIndexService: FileIndexService,
+    private readonly eventEmitter: EventEmitter2,
   ) {}
 
   @Get(':rootId/categories')
@@ -61,6 +65,14 @@ export class FilesController {
   ) {
     if (!category) throw new BadRequestException('category is required');
     return await this.service.listFilesPaged(rootId, category, query);
+  }
+
+  @Post('sync')
+  @ApiOperation({ summary: '强制同步文件索引（重新扫描磁盘并刷新数据库）' })
+  async syncFileIndex() {
+    await this.fileIndexService.syncAll();
+    this.eventEmitter.emit('files.index.resynced');
+    return { message: 'ok' };
   }
 
   @Post(':rootId/upload')

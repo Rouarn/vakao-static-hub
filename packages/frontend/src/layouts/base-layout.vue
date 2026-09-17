@@ -39,7 +39,7 @@ async function confirmDelete() {
 async function refreshCache() {
   const ok = await store.handleRefreshCache();
   if (ok) {
-    showToast('图片缓存已刷新', 'success');
+    showToast('缓存已刷新', 'success');
   } else {
     showToast('刷新缓存失败', 'error');
   }

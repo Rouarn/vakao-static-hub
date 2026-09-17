@@ -88,8 +88,8 @@ export function renameFile(
   });
 }
 
-export function refreshPhotoCache() {
-  return post<{ message: string }>('/photo/refresh-cache');
+export function syncFileIndex() {
+  return post<{ message: string }>('/files/sync');
 }
 
 export function getSystemDirectories(path?: string) {

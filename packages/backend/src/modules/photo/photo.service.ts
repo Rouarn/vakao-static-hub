@@ -143,6 +143,11 @@ export class PhotoService implements OnModuleInit {
     }, 2000);
   }
 
+  @OnEvent('files.index.resynced')
+  handleFileIndexResynced() {
+    void this.refreshImageCache();
+  }
+
   private shuffleCache(map: Map<string, string[]>) {
     for (const [key, val] of map) {
       map.set(key, this.shuffle(val));
