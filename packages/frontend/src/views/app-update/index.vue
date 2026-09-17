@@ -32,6 +32,8 @@ import {
 import {
   getApps,
   createApp,
+  renameApp,
+  deleteApp,
   getVersions,
   updateVersion,
   setForceUpdate,
@@ -42,6 +44,7 @@ import type { AppVersion } from '@vakao/shared';
 import { formatSize, formatDate } from '@/utils/format';
 import VersionFormModal from './version-form-modal.vue';
 import PublishModal from './publish-modal.vue';
+import AppActionModal from './app-action-modal.vue';
 import type { AxiosError } from 'axios';
 
 defineOptions({
@@ -67,6 +70,12 @@ const publishTarget = ref<AppVersion | null>(null);
 const showCreateApp = ref(false);
 const newAppKey = ref('');
 const createAppLoading = ref(false);
+
+// 应用级修改/删除
+const showAppAction = ref(false);
+const appActionMode = ref<'rename' | 'delete'>('rename');
+const appActionLoading = ref(false);
+const deleteVersionCount = ref<number | null>(null);
 
 const showEdit = ref(false);
 const editTarget = ref<AppVersion | null>(null);
@@ -198,6 +207,67 @@ async function submitCreateApp() {
     message.error(extractErrMsg(err, '创建应用失败'));
   } finally {
     createAppLoading.value = false;
+  }
+}
+
+function openRenameApp() {
+  if (!selectedApp.value) return;
+  appActionMode.value = 'rename';
+  deleteVersionCount.value = null;
+  showAppAction.value = true;
+}
+
+async function openDeleteApp() {
+  if (!selectedApp.value) return;
+  appActionMode.value = 'delete';
+  deleteVersionCount.value = null;
+  showAppAction.value = true;
+  // 查询当前版本数用于风险提示，失败不阻断
+  try {
+    const data = await getVersions({
+      appKey: selectedApp.value,
+      page: 1,
+      pageSize: 1,
+    });
+    deleteVersionCount.value = data.total;
+  } catch {
+    // 忽略：数量仅作提示
+  }
+}
+
+async function handleAppActionConfirm(payload: { newAppKey?: string }) {
+  const appKey = selectedApp.value;
+  if (!appKey) return;
+  appActionLoading.value = true;
+  try {
+    if (appActionMode.value === 'rename') {
+      const newAppKey = payload.newAppKey!;
+      await renameApp(appKey, newAppKey);
+      message.success(`应用已重命名为 ${newAppKey}`);
+      showAppAction.value = false;
+      await loadApps();
+      selectedApp.value = newAppKey;
+      await loadList();
+    } else {
+      const result = await deleteApp(appKey);
+      message.success(
+        `应用 ${appKey} 已删除（版本 ${result.versionCount} · 事件 ${result.eventCount} · 索引 ${result.fileCount}）`,
+      );
+      showAppAction.value = false;
+      selectedApp.value = null;
+      rows.value = [];
+      total.value = 0;
+      await loadApps();
+    }
+  } catch (err) {
+    message.error(
+      extractErrMsg(
+        err,
+        appActionMode.value === 'rename' ? '修改应用失败' : '删除应用失败',
+      ),
+    );
+  } finally {
+    appActionLoading.value = false;
   }
 }
 
@@ -540,7 +610,7 @@ onMounted(() => {
     </div>
 
     <template v-if="selectedApp">
-      <div class="mb-3 flex items-center gap-2">
+      <div class="mb-3 flex items-center gap-2 flex-wrap">
         <NTag round :bordered="false" type="info" size="small">
           <template #icon>
             <NIcon :component="PhonePortraitOutline" />
@@ -552,6 +622,20 @@ onMounted(() => {
             selectedApp
           }}&amp;platform=android&amp;versionCode=N
         </span>
+        <div class="ml-auto flex items-center gap-1">
+          <NButton size="tiny" quaternary type="warning" @click="openRenameApp">
+            <template #icon>
+              <NIcon :component="CreateOutline" />
+            </template>
+            修改应用
+          </NButton>
+          <NButton size="tiny" quaternary type="error" @click="openDeleteApp">
+            <template #icon>
+              <NIcon :component="TrashOutline" />
+            </template>
+            删除应用
+          </NButton>
+        </div>
       </div>
 
       <NDataTable
@@ -668,5 +752,15 @@ onMounted(() => {
         </div>
       </template>
     </NModal>
+
+    <!-- 应用级危险操作（修改标识 / 删除应用） -->
+    <AppActionModal
+      v-model:show="showAppAction"
+      :mode="appActionMode"
+      :app-key="selectedApp ?? ''"
+      :version-count="appActionMode === 'delete' ? deleteVersionCount : null"
+      :loading="appActionLoading"
+      @confirm="handleAppActionConfirm"
+    />
   </main>
 </template>

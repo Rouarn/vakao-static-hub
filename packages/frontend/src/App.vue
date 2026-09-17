@@ -1,7 +1,13 @@
 <script setup lang="ts">
 import { computed } from 'vue';
 import { RouterView } from 'vue-router';
-import { NMessageProvider, NConfigProvider, darkTheme } from 'naive-ui';
+import {
+  NMessageProvider,
+  NConfigProvider,
+  darkTheme,
+  zhCN,
+  dateZhCN,
+} from 'naive-ui';
 import type { GlobalThemeOverrides } from 'naive-ui';
 import { useDark } from '@vueuse/core';
 import LoadingScreen from '@/components/loading-screen.vue';
@@ -22,7 +28,12 @@ const themeOverrides: GlobalThemeOverrides = {
 
 <template>
   <LoadingScreen />
-  <NConfigProvider :theme="theme" :theme-overrides="themeOverrides">
+  <NConfigProvider
+    :theme="theme"
+    :theme-overrides="themeOverrides"
+    :locale="zhCN"
+    :date-locale="dateZhCN"
+  >
     <NMessageProvider>
       <div class="w-full h-full">
         <RouterView />

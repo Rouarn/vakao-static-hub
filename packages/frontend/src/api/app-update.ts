@@ -19,6 +19,24 @@ export function createApp(appKey: string) {
   return post<{ appKey: string }>('/app-updates/apps', { appKey });
 }
 
+/** 修改应用标识（重命名目录，迁移全部版本/事件/索引记录） */
+export function renameApp(appKey: string, newAppKey: string) {
+  return patch<{ appKey: string }>(
+    `/app-updates/apps/${encodeURIComponent(appKey)}`,
+    { newAppKey },
+  );
+}
+
+/** 删除应用（删除整个目录及全部关联数据库记录，不可恢复） */
+export function deleteApp(appKey: string) {
+  return del<{
+    success: true;
+    versionCount: number;
+    eventCount: number;
+    fileCount: number;
+  }>(`/app-updates/apps/${encodeURIComponent(appKey)}`);
+}
+
 export function getVersions(params: ListVersionsParams) {
   return get<PagedResult<AppVersion>>('/app-updates/versions', { params });
 }

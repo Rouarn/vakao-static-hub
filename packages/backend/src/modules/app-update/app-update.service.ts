@@ -26,6 +26,7 @@ import {
   mkdir,
   open,
   readdir,
+  rename,
   rm,
   stat,
 } from 'node:fs/promises';
@@ -110,6 +111,89 @@ export class AppUpdateService implements OnModuleInit {
     }
     await mkdir(targetPath, { recursive: true });
     return { appKey };
+  }
+
+  /**
+   * 修改应用标识（重命名）：目录改名 + 全部关联记录迁移
+   * 含已逻辑删除的版本记录一并迁移——versionCode 历史按应用延续，不可因改名而断裂
+   * 顺序：先迁移数据库（事务），再重命名目录；目录改名失败时操作可安全重试
+   */
+  async renameApp(appKey: string, newAppKey: string) {
+    if (appKey === newAppKey) {
+      throw new BadRequestException('新应用标识与当前标识相同');
+    }
+    const rootPath = this.resourceRoots.resolveRootPath(
+      SOFTWARE_UPDATE_ROOT_ID,
+    );
+    const oldPath = safeJoin(rootPath, [appKey]);
+    const newPath = safeJoin(rootPath, [newAppKey]);
+    try {
+      await access(oldPath, constants.F_OK);
+    } catch {
+      throw new NotFoundException(`应用 ${appKey} 不存在`);
+    }
+    try {
+      await access(newPath, constants.F_OK);
+      throw new ConflictException(`应用 ${newAppKey} 已存在`);
+    } catch (e) {
+      if (e instanceof ConflictException) throw e;
+    }
+
+    await this.versionRepo.manager.transaction(async (manager) => {
+      await manager.update(
+        AppVersionEntity,
+        { appKey },
+        { appKey: newAppKey, category: newAppKey },
+      );
+      await manager.update(
+        AppUpgradeEventEntity,
+        { appKey },
+        { appKey: newAppKey },
+      );
+      await manager.update(
+        FileEntryEntity,
+        { rootId: SOFTWARE_UPDATE_ROOT_ID, category: appKey },
+        { category: newAppKey },
+      );
+    });
+
+    await rename(oldPath, newPath);
+    return { appKey: newAppKey };
+  }
+
+  /**
+   * 删除应用：物理删除整个应用目录 + 硬删除全部关联数据库记录（不可恢复）
+   * 关联记录：版本记录（含历史）、升级事件、文件管理器索引
+   * 顺序：先清数据库（事务），再删目录；目录删除失败时操作可安全重试
+   */
+  async deleteApp(appKey: string) {
+    const rootPath = this.resourceRoots.resolveRootPath(
+      SOFTWARE_UPDATE_ROOT_ID,
+    );
+    const appPath = safeJoin(rootPath, [appKey]);
+    try {
+      await access(appPath, constants.F_OK);
+    } catch {
+      throw new NotFoundException(`应用 ${appKey} 不存在`);
+    }
+
+    let versionCount = 0;
+    let eventCount = 0;
+    let fileCount = 0;
+    await this.versionRepo.manager.transaction(async (manager) => {
+      const v = await manager.delete(AppVersionEntity, { appKey });
+      versionCount = v.affected ?? 0;
+      const e = await manager.delete(AppUpgradeEventEntity, { appKey });
+      eventCount = e.affected ?? 0;
+      const f = await manager.delete(FileEntryEntity, {
+        rootId: SOFTWARE_UPDATE_ROOT_ID,
+        category: appKey,
+      });
+      fileCount = f.affected ?? 0;
+    });
+
+    await rm(appPath, { recursive: true, force: true });
+    return { success: true, versionCount, eventCount, fileCount };
   }
 
   // ==================== 客户端接口 ====================
