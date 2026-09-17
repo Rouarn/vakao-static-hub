@@ -1,0 +1,51 @@
+{
+  "name": "@vakao/backend",
+  "version": "0.0.1",
+  "private": true,
+  "scripts": {
+    "dev": "cd ../.. && nest start --watch -c packages/backend/nest-cli.json",
+    "build": "cd ../.. && nest build -c packages/backend/nest-cli.json",
+    "start": "node dist/main.js",
+    "typecheck": "tsc --noEmit -p tsconfig.build.json",
+    "lint": "eslint src --fix",
+    "format": "prettier --write src"
+  },
+  "dependencies": {
+    "@nestjs/common": "^11.1.27",
+    "@nestjs/config": "^4.0.4",
+    "@nestjs/core": "^11.1.27",
+    "@nestjs/event-emitter": "^3.1.0",
+    "@nestjs/jwt": "^11.0.2",
+    "@nestjs/passport": "^11.0.5",
+    "@nestjs/platform-express": "^11.1.27",
+    "@nestjs/schedule": "^6.1.3",
+    "@nestjs/swagger": "^11.4.4",
+    "@nestjs/typeorm": "^11.0.2",
+    "@vakao/shared": "workspace:*",
+    "better-sqlite3": "^12.11.1",
+    "class-transformer": "^0.5.1",
+    "class-validator": "^0.15.1",
+    "express": "^5.2.1",
+    "http-proxy-middleware": "^4.1.1",
+    "multer": "^2.2.0",
+    "passport": "^0.7.0",
+    "passport-jwt": "^4.0.1",
+    "rxjs": "^7.8.2",
+    "sharp": "^0.35.2",
+    "swagger-ui-express": "^5.0.1",
+    "typeorm": "^0.3.20"
+  },
+  "devDependencies": {
+    "@nestjs/cli": "^11.0.23",
+    "@nestjs/schematics": "^11.1.0",
+    "@types/express": "^5.0.6",
+    "@types/multer": "^2.1.0",
+    "@types/passport": "^1.0.17",
+    "@types/passport-jwt": "^4.0.1",
+    "jest": "^30.4.2",
+    "supertest": "^7.2.2",
+    "ts-jest": "^29.4.11",
+    "ts-node": "^10.9.2",
+    "typescript": "~6.0.3"
+  }
+}

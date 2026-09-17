@@ -1,0 +1,14 @@
+{
+  "collection": "@nestjs/schematics",
+  "sourceRoot": "packages/backend/src",
+  "compilerOptions": {
+    "tsConfigPath": "packages/backend/tsconfig.build.json",
+    "assets": [
+      {
+        "include": "../public/**/*",
+        "outDir": "deploy/server/public",
+        "watchAssets": true
+      }
+    ]
+  }
+}
