@@ -22,25 +22,58 @@ export class PhotoController {
   @ApiQuery({ name: 'category', required: false, description: '分类名称' })
   @ApiQuery({ name: 'width', required: false, description: '图片宽度' })
   @ApiQuery({ name: 'height', required: false, description: '图片高度' })
+  @ApiQuery({
+    name: 'r',
+    required: false,
+    description: '资源根目录 ID（rootId 简称，同时存在时优先 rootId）',
+  })
+  @ApiQuery({
+    name: 'c',
+    required: false,
+    description: '分类名称（category 简称，同时存在时优先 category）',
+  })
+  @ApiQuery({
+    name: 'w',
+    required: false,
+    description: '图片宽度（width 简称，同时存在时优先 width）',
+  })
+  @ApiQuery({
+    name: 'h',
+    required: false,
+    description: '图片高度（height 简称，同时存在时优先 height）',
+  })
   async getRandomImage(
     @Query('rootId') rootId: string | undefined,
     @Query('category') category: string | undefined,
     @Query('width') width: string | undefined,
     @Query('height') height: string | undefined,
+    @Query('r') r: string | undefined,
+    @Query('c') c: string | undefined,
+    @Query('w') w: string | undefined,
+    @Query('h') h: string | undefined,
     @Res() res: Response,
   ) {
-    const widthNum = width ? Number(width) : undefined;
-    const heightNum = height ? Number(height) : undefined;
+    // 全称优先于简称
+    const effectiveRootId = rootId ?? r;
+    const effectiveCategory = category ?? c;
+    const effectiveWidth = width ?? w;
+    const effectiveHeight = height ?? h;
 
-    if ((width && isNaN(widthNum!)) || (height && isNaN(heightNum!))) {
+    const widthNum = effectiveWidth ? Number(effectiveWidth) : undefined;
+    const heightNum = effectiveHeight ? Number(effectiveHeight) : undefined;
+
+    if (
+      (effectiveWidth && isNaN(widthNum!)) ||
+      (effectiveHeight && isNaN(heightNum!))
+    ) {
       throw new BadRequestException('宽度和高度必须是数字');
     }
 
     const { buffer, mimeType } = await this.service.getProcessedImage(
-      category,
+      effectiveCategory,
       widthNum,
       heightNum,
-      rootId,
+      effectiveRootId,
     );
 
     res.setHeader('Content-Type', mimeType);

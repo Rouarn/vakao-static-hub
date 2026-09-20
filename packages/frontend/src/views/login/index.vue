@@ -104,7 +104,7 @@ async function handleSubmit() {
         <p class="text-sm text-gray-500 mt-1">静态资源管理系统</p>
       </div>
 
-      <NForm size="large" @keyup.enter="handleSubmit">
+      <NForm size="large">
         <NFormItem label="用户名">
           <NInput
             v-model:value="username"
@@ -118,6 +118,7 @@ async function handleSubmit() {
             type="password"
             placeholder="请输入密码"
             show-password-on="mousedown"
+            @keyup.enter="handleSubmit"
           />
         </NFormItem>
         <NFormItem v-if="isRegister" label="确认密码">
@@ -126,6 +127,7 @@ async function handleSubmit() {
             type="password"
             placeholder="请再次输入密码"
             show-password-on="mousedown"
+            @keyup.enter="handleSubmit"
           />
         </NFormItem>
         <NFormItem>
