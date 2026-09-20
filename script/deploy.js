@@ -136,10 +136,10 @@ async function main() {
   log('构建 @vakao/backend...', 'build');
   run('pnpm --filter @vakao/backend build', { cwd: rootDir });
 
-  // 3.1. 拷贝后端编译产物到 deploy/server
-  log('拷贝后端产物到 deploy/server...', 'copy');
+  // 3.1.移动后端编译产物到 deploy/server
+  log('移动后端产物到 deploy/server...', 'copy');
   await ensureDir(serverDistDir);
-  await copy(path.join(backendDir, 'dist'), serverDistDir, {
+  await move(path.join(backendDir, 'dist'), serverDistDir, {
     overwrite: true,
   });
 
@@ -153,16 +153,18 @@ async function main() {
   });
 
   // 5. 移动前端静态资源到 deploy/web
-  log('拷贝前端到 deploy/web...', 'copy');
+  log('移动前端到 deploy/web...', 'copy');
   await ensureDir(webDistDir);
   await move(path.join(frontendDir, 'dist'), webDistDir, {
     overwrite: true,
   });
 
-  // 6. 把 shared 编译产物拷贝到 deploy/server/shared，
+  // 6. 把 shared 编译产物复制到 deploy/server/shared，
   //    供 deploy/package.json 中 "@vakao/shared": "file:./server/shared" 引用
-  log('拷贝 @vakao/shared 到 deploy/server/shared...', 'copy');
+  log('复制 @vakao/shared 到 deploy/server/shared...', 'copy');
   await ensureDir(sharedInServerDir);
+  // 注意：必须复制（copy）而非移动（move），package.json 是受 git 跟踪的源文件，
+  // 移走会损坏本地工作区（后续 install / typecheck / dev 均会失败）
   await copy(
     path.join(sharedDir, 'dist'),
     path.join(sharedInServerDir, 'dist'),
