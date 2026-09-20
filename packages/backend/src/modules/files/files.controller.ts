@@ -28,6 +28,7 @@ import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { FilesService } from './files.service.js';
 import { ListFilesQueryDto } from './dto/list-files-query.dto.js';
 import { RenameFileDto } from './dto/rename-file.dto.js';
+import { RenameCategoryDto } from './dto/rename-category.dto.js';
 import { Public } from '../auth/decorators/public.decorator.js';
 import { ImageProcessorService } from './image-processor.service.js';
 import { getMimeType } from './utils/mime-types.js';
@@ -52,6 +53,34 @@ export class FilesController {
   @ApiParam({ name: 'rootId', description: '根目录 ID' })
   async listCategories(@Param('rootId') rootId: string) {
     return await this.service.listCategories(rootId);
+  }
+
+  // 注意：该静态段路由必须声明在通配路由 @Patch(':rootId/:category/*path') 之前，
+  // 否则 /files/:rootId/categories/:category 会被通配路由抢先匹配
+  @Patch(':rootId/categories/:category')
+  @ApiOperation({
+    summary: '重命名分类（目录改名，文件索引与分享链接同步迁移）',
+  })
+  @ApiParam({ name: 'rootId', description: '根目录 ID' })
+  @ApiParam({ name: 'category', description: '当前分类目录名' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['newCategory'],
+      properties: {
+        newCategory: {
+          type: 'string',
+          description: '新分类目录名（不含路径分隔符）',
+        },
+      },
+    },
+  })
+  async renameCategory(
+    @Param('rootId') rootId: string,
+    @Param('category') category: string,
+    @Body() dto: RenameCategoryDto,
+  ) {
+    return await this.service.renameCategory(rootId, category, dto.newCategory);
   }
 
   @Get(':rootId/:category')

@@ -25,6 +25,17 @@ export function getCategories(rootId: string) {
   return get<string[]>(`/files/${rootId}/categories`);
 }
 
+export function renameCategory(
+  rootId: string,
+  category: string,
+  newCategory: string,
+) {
+  return patch<{ category: string }>(
+    `/files/${rootId}/categories/${encodeURIComponent(category)}`,
+    { newCategory },
+  );
+}
+
 export function getFiles(
   rootId: string,
   category: string,

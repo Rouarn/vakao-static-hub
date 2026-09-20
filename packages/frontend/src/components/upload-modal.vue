@@ -7,6 +7,7 @@ import {
   DocumentOutline,
 } from '@vicons/ionicons5';
 import { uploadFile } from '@/api/files';
+import { DEFAULT_CATEGORY } from '@/stores/modules/file-list';
 import type { AxiosError, AxiosProgressEvent } from 'axios';
 
 interface UploadItem {
@@ -227,7 +228,7 @@ function getDisplayPath(item: UploadItem) {
   const baseCategory =
     uploadCategoryInput.value.trim() ||
     props.defaultCategory ||
-    'TemporaryFile';
+    DEFAULT_CATEGORY;
 
   let finalCategory = baseCategory;
   if (item.relativePath) {
@@ -249,7 +250,7 @@ async function handleUpload() {
   const baseCategory =
     uploadCategoryInput.value.trim() ||
     props.defaultCategory ||
-    'TemporaryFile';
+    DEFAULT_CATEGORY;
 
   if (!baseCategory) {
     emit('error', '请输入或选择分类');

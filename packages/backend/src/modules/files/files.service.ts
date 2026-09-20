@@ -17,6 +17,7 @@ import {
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { platform } from 'node:os';
 import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
+import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
@@ -26,11 +27,13 @@ import {
   normalizeCategoryPath,
   getFileExtension,
 } from './utils/path-utils.js';
+import { SOFTWARE_UPDATE_ROOT_ID } from '../app-update/app-update.constants.js';
 
 @Injectable()
 export class FilesService {
   constructor(
     private readonly resourceRoots: ResourceRootsService,
+    private readonly configService: ConfigService,
     @InjectRepository(FileEntryEntity)
     private readonly repo: Repository<FileEntryEntity>,
     @InjectRepository(ShareLinkEntity)
@@ -79,6 +82,84 @@ export class FilesService {
       .filter((d) => d.isDirectory() && !d.name.startsWith('.'))
       .map((d) => d.name)
       .sort((a, b) => a.localeCompare(b));
+  }
+
+  /**
+   * 重命名资源分类（根目录下的一级子目录）
+   * 物理目录改名，文件索引与分享链接在同一事务内迁移；
+   * software-update 根下的分类即应用，需走 APP 版本管理的改名接口
+   */
+  async renameCategory(rootId: string, category: string, newCategory: string) {
+    if (rootId === SOFTWARE_UPDATE_ROOT_ID) {
+      throw new BadRequestException(
+        'software-update 根下的分类即应用，请在 APP 版本管理中修改应用标识',
+      );
+    }
+
+    const root = this.resourceRoots.getRoot(rootId);
+    if (!root) {
+      throw new NotFoundException('资源根目录不存在');
+    }
+
+    const defaultCategory =
+      this.configService.get<string>('files.defaultCategory') ??
+      'TemporaryFile';
+
+    const targetName = this.validateBasename(newCategory);
+    const { dbCategory } = normalizeCategoryPath(category);
+    if (!dbCategory) {
+      throw new BadRequestException('分类名不合法');
+    }
+
+    if (dbCategory === defaultCategory) {
+      throw new BadRequestException('默认分类不可重命名');
+    }
+    if (targetName === defaultCategory) {
+      throw new BadRequestException('默认分类名为系统保留，不可使用');
+    }
+
+    if (dbCategory === targetName) {
+      throw new BadRequestException('新分类名与当前分类名相同');
+    }
+
+    const rootPath = this.resourceRoots.resolveRootPath(rootId);
+    const oldFullPath = safeJoin(rootPath, [dbCategory]);
+    const newFullPath = safeJoin(rootPath, [targetName]);
+
+    let sourceStat;
+    try {
+      sourceStat = await stat(oldFullPath);
+    } catch {
+      throw new NotFoundException('分类不存在');
+    }
+    if (!sourceStat.isDirectory()) {
+      throw new BadRequestException('目标不是分类目录');
+    }
+
+    try {
+      await access(newFullPath, constants.F_OK);
+      throw new ConflictException('同名分类已存在');
+    } catch (e) {
+      if (e instanceof ConflictException) throw e;
+    }
+
+    // 先在事务内迁移文件索引与分享链接，再执行物理目录改名
+    await this.repo.manager.transaction(async (manager) => {
+      await manager.update(
+        FileEntryEntity,
+        { rootId, category: dbCategory },
+        { category: targetName },
+      );
+      await manager.update(
+        ShareLinkEntity,
+        { rootId, category: dbCategory },
+        { category: targetName },
+      );
+    });
+
+    await fsRename(oldFullPath, newFullPath);
+
+    return { category: targetName };
   }
 
   async listFilesPaged(

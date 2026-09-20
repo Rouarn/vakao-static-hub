@@ -7,6 +7,7 @@ import {
   getCategories,
   getFiles,
   deleteFile as apiDeleteFile,
+  renameCategory as apiRenameCategory,
   syncFileIndex,
 } from '@/api/files';
 import type {
@@ -17,13 +18,19 @@ import type {
   SortOrder,
 } from '@vakao/shared';
 
+/**
+ * 系统默认兜底分类（与后端 DEFAULT_CATEGORY 环境变量的默认值保持一致）
+ * 分类列表为空或未选择时使用，该分类不允许重命名
+ */
+export const DEFAULT_CATEGORY = 'TemporaryFile';
+
 export const useFileListStore = defineStore('file-list', () => {
   const authStore = useAuthStore();
 
   const roots = ref<ResourceRoot[]>([]);
   const currentRootId = ref('');
   const categories = ref<string[]>([]);
-  const currentCategory = ref('TemporaryFile');
+  const currentCategory = ref(DEFAULT_CATEGORY);
   const files = ref<FileItem[]>([]);
   const totalFiles = ref(0);
   const page = ref(1);
@@ -61,9 +68,9 @@ export const useFileListStore = defineStore('file-list', () => {
     if (!currentRootId.value) return;
     try {
       const data = await getCategories(currentRootId.value);
-      categories.value = data?.length ? data : ['TemporaryFile'];
+      categories.value = data?.length ? data : [DEFAULT_CATEGORY];
     } catch {
-      categories.value = ['TemporaryFile'];
+      categories.value = [DEFAULT_CATEGORY];
     }
   }
 
@@ -92,7 +99,7 @@ export const useFileListStore = defineStore('file-list', () => {
     currentRootId.value = id;
     await loadCategories();
     if (!categories.value.includes(currentCategory.value)) {
-      currentCategory.value = categories.value[0] || 'TemporaryFile';
+      currentCategory.value = categories.value[0] || DEFAULT_CATEGORY;
     }
     page.value = 1;
     await loadFiles();
@@ -102,7 +109,7 @@ export const useFileListStore = defineStore('file-list', () => {
     await loadRoots();
     await loadCategories();
     if (!categories.value.includes(currentCategory.value)) {
-      currentCategory.value = categories.value[0] || 'TemporaryFile';
+      currentCategory.value = categories.value[0] || DEFAULT_CATEGORY;
     }
     page.value = 1;
     await loadFiles();
@@ -112,6 +119,17 @@ export const useFileListStore = defineStore('file-list', () => {
     currentCategory.value = cat;
     page.value = 1;
     await router.push({ name: 'file-list' });
+    await loadFiles();
+  }
+
+  async function handleRenameCategory(newCategory: string) {
+    const previous = currentCategory.value;
+    await apiRenameCategory(currentRootId.value, previous, newCategory);
+    await loadCategories();
+    if (currentCategory.value === previous) {
+      currentCategory.value = newCategory;
+    }
+    page.value = 1;
     await loadFiles();
   }
 
@@ -164,6 +182,7 @@ export const useFileListStore = defineStore('file-list', () => {
   }
 
   return {
+    defaultCategory: DEFAULT_CATEGORY,
     roots,
     currentRootId,
     categories,
@@ -184,6 +203,7 @@ export const useFileListStore = defineStore('file-list', () => {
     handleRootChange,
     handleRootsUpdated,
     handleCategoryClick,
+    handleRenameCategory,
     handleDeleteFile,
     handleRefreshCache,
     handlePageChange,

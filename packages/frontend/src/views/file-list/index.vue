@@ -19,9 +19,11 @@ import {
   DownloadOutline,
   TrashOutline,
   SearchOutline,
+  CreateOutline,
   ArrowUpOutline,
   ArrowDownOutline,
 } from '@vicons/ionicons5';
+import RenameCategoryModal from './components/rename-category-modal.vue';
 import { useFileListStore } from '@/stores/modules/file-list/index.ts';
 import type { SortField } from '@vakao/shared';
 import { formatSize, formatDate } from '@/utils/format';
@@ -223,6 +225,20 @@ function openDeleteModal(path: string) {
   showDeleteModal.value = true;
 }
 
+const showRenameCategoryModal = ref(false);
+
+function openRenameCategoryModal() {
+  showRenameCategoryModal.value = true;
+}
+
+// software-update 根下的分类即应用，改名入口在 APP 版本管理；
+// 系统默认兜底分类（DEFAULT_CATEGORY）不允许改名
+const canRenameCategory = computed(
+  () =>
+    store.currentRootId !== 'software-update' &&
+    store.currentCategory !== store.defaultCategory,
+);
+
 import { NModal, useMessage } from 'naive-ui';
 const message = useMessage();
 
@@ -248,12 +264,22 @@ async function confirmDelete() {
       class="flex flex-col md:flex-row items-start md:items-center justify-between py-4 mb-4 sticky top-0 z-2 bg-container/95 backdrop-blur supports-[backdrop-filter]:bg-container/80 border-b border-base shadow-sm -mx-4 md:-mx-6 px-4 md:px-6 gap-4 md:gap-0"
     >
       <div>
-        <h2
-          id="currentCategoryTitle"
-          class="text-xl font-semibold mb-1 text-base"
-        >
-          {{ store.currentCategory }}
-        </h2>
+        <div class="flex items-center gap-1.5 mb-1">
+          <h2 id="currentCategoryTitle" class="text-xl font-semibold text-base">
+            {{ store.currentCategory }}
+          </h2>
+          <button
+            v-if="canRenameCategory"
+            type="button"
+            title="重命名分类"
+            class="w-7 h-7 inline-flex items-center justify-center rounded-md border border-transparent bg-transparent text-[#6c757d] hover:bg-container hover:text-primary transition-all"
+            @click="openRenameCategoryModal"
+          >
+            <NIcon size="16">
+              <CreateOutline />
+            </NIcon>
+          </button>
+        </div>
         <span id="fileCount" class="text-xs text-gray-500">
           {{ store.totalFiles }} 个文件
         </span>
@@ -448,6 +474,12 @@ async function confirmDelete() {
       positive-text="删除"
       negative-text="取消"
       @positive-click="confirmDelete"
+    />
+
+    <RenameCategoryModal
+      :visible="showRenameCategoryModal"
+      :category="store.currentCategory"
+      @close="showRenameCategoryModal = false"
     />
   </main>
 </template>
