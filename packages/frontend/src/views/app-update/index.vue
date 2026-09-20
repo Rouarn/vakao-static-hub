@@ -347,7 +347,7 @@ async function handleOffline(row: AppVersion) {
 async function handleRemove(row: AppVersion) {
   try {
     await removeVersion(row.id);
-    message.success('已删除记录（物理文件保留）');
+    message.success('版本已物理删除（安装包及关联记录已清除）');
     await loadList();
   } catch (err) {
     message.error(extractErrMsg(err, '删除失败'));
@@ -529,7 +529,8 @@ const columns = computed<DataTableColumns<AppVersion>>(() => [
                     default: () => '删除',
                   },
                 ),
-              default: () => '仅删除记录，安装包文件永久保留。确定删除？',
+              default: () =>
+                '将物理删除安装包文件及该版本的全部关联记录，删除后不可恢复。确定删除？',
             },
           ),
         );

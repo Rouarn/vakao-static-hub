@@ -99,8 +99,4 @@ export class AppVersionEntity {
   /** 更新时间戳（毫秒） */
   @Column({ type: 'integer' })
   updatedAt!: number;
-
-  /** 逻辑删除标记（物理文件永不删除） */
-  @Column({ type: 'integer', default: 0 })
-  isDeleted!: number;
 }

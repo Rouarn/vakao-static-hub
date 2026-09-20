@@ -305,7 +305,7 @@ vakao-static-hub/
 | POST   | `/static/app-updates/versions/:id/publish`                     | 发布（`full` 全量 / `gray` 灰度，带门禁校验）              | 是   |
 | PUT    | `/static/app-updates/versions/:id/force`                       | 远程修改强更开关（逃生口，无需重新发版）                   | 是   |
 | POST   | `/static/app-updates/versions/:id/offline`                     | 一键下架（止血开关，文件保留）                             | 是   |
-| DELETE | `/static/app-updates/versions/:id`                             | 逻辑删除（仅草稿/已下架，物理文件保留）                    | 是   |
+| DELETE | `/static/app-updates/versions/:id`                             | 物理删除（仅草稿/已下架，删除 APK 文件及全部关联记录，不可恢复） | 是   |
 
 版本状态：`0` 草稿 / `1` 灰度 / `2` 全量 / `3` 已下架；`(platform, appKey, versionCode)` 唯一。
 

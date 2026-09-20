@@ -10,7 +10,7 @@ const props = defineProps<{
   show: boolean;
   mode: 'rename' | 'delete';
   appKey: string;
-  /** 删除前展示的当前版本数（不含历史软删记录），null 表示不展示 */
+  /** 删除前展示的当前版本数，null 表示不展示 */
   versionCount?: number | null;
   loading?: boolean;
 }>();

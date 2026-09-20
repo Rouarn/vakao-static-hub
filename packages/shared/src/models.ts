@@ -92,7 +92,6 @@ export interface AppVersion {
   remark: string | null;
   createdAt: number;
   updatedAt: number;
-  isDeleted: number;
 }
 
 export type UpgradeEventName =

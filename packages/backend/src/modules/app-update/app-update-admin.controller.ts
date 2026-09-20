@@ -124,7 +124,9 @@ export class AppUpdateAdminController {
   }
 
   @Delete(':id')
-  @ApiOperation({ summary: '逻辑删除记录（仅草稿/已下架，物理文件保留）' })
+  @ApiOperation({
+    summary: '物理删除版本（仅草稿/已下架，删除 APK 文件及全部关联记录，不可恢复）',
+  })
   @ApiParam({ name: 'id' })
   async remove(@Param('id', ParseIntPipe) id: number) {
     return await this.service.remove(id);

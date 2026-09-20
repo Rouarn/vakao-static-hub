@@ -115,7 +115,7 @@ export class AppUpdateService implements OnModuleInit {
 
   /**
    * 修改应用标识（重命名）：目录改名 + 全部关联记录迁移
-   * 含已逻辑删除的版本记录一并迁移——versionCode 历史按应用延续，不可因改名而断裂
+   * 全部版本记录一并迁移——versionCode 历史按应用延续，不可因改名而断裂
    * 顺序：先迁移数据库（事务），再重命名目录；目录改名失败时操作可安全重试
    */
   async renameApp(appKey: string, newAppKey: string) {
@@ -249,7 +249,6 @@ export class AppUpdateService implements OnModuleInit {
       where: {
         platform,
         appKey,
-        isDeleted: 0,
         status: In([VERSION_STATUS.GRAY, VERSION_STATUS.PUBLISHED]),
       },
       order: { versionCode: 'DESC' },
@@ -261,7 +260,6 @@ export class AppUpdateService implements OnModuleInit {
       where: {
         platform,
         appKey,
-        isDeleted: 0,
         status: VERSION_STATUS.PUBLISHED,
       },
       order: { versionCode: 'DESC' },
@@ -292,7 +290,7 @@ export class AppUpdateService implements OnModuleInit {
   /** 查询可下载的版本记录（仅灰度/全量可见） */
   async getDownloadable(id: number) {
     const record = await this.versionRepo.findOne({
-      where: { id, isDeleted: 0 },
+      where: { id },
     });
     if (
       !record ||
@@ -427,7 +425,6 @@ export class AppUpdateService implements OnModuleInit {
             publishTime: null,
             createdAt: now,
             updatedAt: now,
-            isDeleted: 0,
           }),
         );
         return record;
@@ -462,12 +459,10 @@ export class AppUpdateService implements OnModuleInit {
 
   /** 分页版本列表（可按应用/状态筛选） */
   async listVersions(query: ListVersionsQueryDto) {
-    const qb = this.versionRepo
-      .createQueryBuilder('v')
-      .where('v.isDeleted = 0');
+    const qb = this.versionRepo.createQueryBuilder('v');
 
     if (query.appKey) {
-      qb.andWhere('v.appKey = :appKey', { appKey: query.appKey });
+      qb.where('v.appKey = :appKey', { appKey: query.appKey });
     }
     if (query.status !== undefined) {
       qb.andWhere('v.status = :status', { status: query.status });
@@ -523,7 +518,6 @@ export class AppUpdateService implements OnModuleInit {
       .where('v.platform = :platform', { platform: record.platform })
       .andWhere('v.appKey = :appKey', { appKey: record.appKey })
       .andWhere('v.status = :status', { status: VERSION_STATUS.PUBLISHED })
-      .andWhere('v.isDeleted = 0')
       .andWhere('v.id != :id', { id: record.id })
       .getRawOne<{ max: number | string | null }>();
     const maxFull = row?.max == null ? null : Number(row.max);
@@ -563,7 +557,13 @@ export class AppUpdateService implements OnModuleInit {
     return await this.versionRepo.save(record);
   }
 
-  /** 逻辑删除记录：仅草稿/已下架可删，物理文件永久保留 */
+  /**
+   * 物理删除版本（不可恢复）：硬删除版本记录、该版本升级漏斗事件、文件管理器索引，
+   * 并删除磁盘上的 APK 文件。仅草稿/已下架可删，发布态必须先下架止血。
+   * 升级事件按 toVersionCode 归属（该版本安装包的下载/安装漏斗）；
+   * fromVersionCode 命中的事件属于其他版本的升级漏斗，不在此删除。
+   * 顺序：先清数据库（事务），再删文件；文件删除失败时不影响数据库清理结果
+   */
   async remove(id: number) {
     const record = await this.getExisting(id);
     if (
@@ -572,15 +572,32 @@ export class AppUpdateService implements OnModuleInit {
     ) {
       throw new BadRequestException('发布中的版本不可删除，请先下架');
     }
-    record.isDeleted = 1;
-    record.updatedAt = Date.now();
-    await this.versionRepo.save(record);
-    return { success: true };
+
+    const apkPath = this.resolveApkPath(record);
+    let eventCount = 0;
+    let fileCount = 0;
+    await this.versionRepo.manager.transaction(async (manager) => {
+      const e = await manager.delete(AppUpgradeEventEntity, {
+        appKey: record.appKey,
+        toVersionCode: record.versionCode,
+      });
+      eventCount = e.affected ?? 0;
+      const f = await manager.delete(FileEntryEntity, {
+        rootId: record.storageRootId,
+        category: record.category,
+        relPath: record.relPath,
+      });
+      fileCount = f.affected ?? 0;
+      await manager.delete(AppVersionEntity, { id: record.id });
+    });
+
+    await rm(apkPath, { force: true });
+    return { success: true, eventCount, fileCount };
   }
 
   private async getExisting(id: number) {
     const record = await this.versionRepo.findOne({
-      where: { id, isDeleted: 0 },
+      where: { id },
     });
     if (!record) {
       throw new NotFoundException('版本记录不存在');
