@@ -17,6 +17,12 @@ export interface FileItem {
   mtime: number;
 }
 
+/** 文件管理相关的服务端下发配置 */
+export interface FileConfig {
+  /** 默认兜底分类名（后端 DEFAULT_CATEGORY 环境变量），该分类不允许重命名 */
+  defaultCategory: string;
+}
+
 export interface ShareLink {
   id: number;
   token: string;

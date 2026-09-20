@@ -4,6 +4,7 @@ import { useAuthStore } from '@/stores/modules/auth';
 import router from '@/router';
 import {
   getRoots,
+  getFileConfig,
   getCategories,
   getFiles,
   deleteFile as apiDeleteFile,
@@ -19,8 +20,9 @@ import type {
 } from '@vakao/shared';
 
 /**
- * 系统默认兜底分类（与后端 DEFAULT_CATEGORY 环境变量的默认值保持一致）
- * 分类列表为空或未选择时使用，该分类不允许重命名
+ * 默认兜底分类的前端兜底初值（与后端 DEFAULT_CATEGORY 环境变量的默认值一致）。
+ * 登录初始化时会通过 GET /files/config 拉取服务端真实值覆盖；
+ * 请求失败或配置未到达前使用该常量，该分类不允许重命名。
  */
 export const DEFAULT_CATEGORY = 'TemporaryFile';
 
@@ -30,6 +32,7 @@ export const useFileListStore = defineStore('file-list', () => {
   const roots = ref<ResourceRoot[]>([]);
   const currentRootId = ref('');
   const categories = ref<string[]>([]);
+  const defaultCategory = ref(DEFAULT_CATEGORY);
   const currentCategory = ref(DEFAULT_CATEGORY);
   const files = ref<FileItem[]>([]);
   const totalFiles = ref(0);
@@ -64,13 +67,25 @@ export const useFileListStore = defineStore('file-list', () => {
     }
   }
 
+  /** 拉取服务端文件配置（默认分类等），失败时保留前端兜底初值 */
+  async function loadConfig() {
+    try {
+      const config = await getFileConfig();
+      if (config?.defaultCategory) {
+        defaultCategory.value = config.defaultCategory;
+      }
+    } catch {
+      console.error('加载文件配置失败');
+    }
+  }
+
   async function loadCategories() {
     if (!currentRootId.value) return;
     try {
       const data = await getCategories(currentRootId.value);
-      categories.value = data?.length ? data : [DEFAULT_CATEGORY];
+      categories.value = data?.length ? data : [defaultCategory.value];
     } catch {
-      categories.value = [DEFAULT_CATEGORY];
+      categories.value = [defaultCategory.value];
     }
   }
 
@@ -99,7 +114,7 @@ export const useFileListStore = defineStore('file-list', () => {
     currentRootId.value = id;
     await loadCategories();
     if (!categories.value.includes(currentCategory.value)) {
-      currentCategory.value = categories.value[0] || DEFAULT_CATEGORY;
+      currentCategory.value = categories.value[0] || defaultCategory.value;
     }
     page.value = 1;
     await loadFiles();
@@ -109,7 +124,7 @@ export const useFileListStore = defineStore('file-list', () => {
     await loadRoots();
     await loadCategories();
     if (!categories.value.includes(currentCategory.value)) {
-      currentCategory.value = categories.value[0] || DEFAULT_CATEGORY;
+      currentCategory.value = categories.value[0] || defaultCategory.value;
     }
     page.value = 1;
     await loadFiles();
@@ -169,6 +184,9 @@ export const useFileListStore = defineStore('file-list', () => {
 
   async function init() {
     if (authStore.isLoggedIn) {
+      // 先拉服务端配置，再加载根目录/分类，确保默认分类与后端 DEFAULT_CATEGORY 一致
+      await loadConfig();
+      currentCategory.value = defaultCategory.value;
       await loadRoots();
       await loadCategories();
       if (
@@ -182,7 +200,7 @@ export const useFileListStore = defineStore('file-list', () => {
   }
 
   return {
-    defaultCategory: DEFAULT_CATEGORY,
+    defaultCategory,
     roots,
     currentRootId,
     categories,

@@ -1,6 +1,11 @@
 import { get, post, patch, del } from '../utils/request';
 import { http } from '../utils/request';
-import type { ResourceRoot, FileItem, PagedResult } from '@vakao/shared';
+import type {
+  ResourceRoot,
+  FileItem,
+  FileConfig,
+  PagedResult,
+} from '@vakao/shared';
 
 export function getRoots() {
   return get<ResourceRoot[]>('/roots');
@@ -19,6 +24,10 @@ export function updateRoot(
 
 export function removeRoot(id: string) {
   return del<{ success: true }>(`/roots/${id}`);
+}
+
+export function getFileConfig() {
+  return get<FileConfig>('/files/config');
 }
 
 export function getCategories(rootId: string) {

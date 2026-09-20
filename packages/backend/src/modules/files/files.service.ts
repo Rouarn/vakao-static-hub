@@ -40,6 +40,17 @@ export class FilesService {
     private readonly shareRepo: Repository<ShareLinkEntity>,
   ) {}
 
+  /** 默认兜底分类名（DEFAULT_CATEGORY），供前端初始化与校验对齐 */
+  getDefaultCategory(): string {
+    return (
+      this.configService.get<string>('files.defaultCategory') ?? 'TemporaryFile'
+    );
+  }
+
+  getFileConfig() {
+    return { defaultCategory: this.getDefaultCategory() };
+  }
+
   safeJoinCategory(rootId: string, category: string, parts: string[]) {
     const rootPath = this.resourceRoots.resolveRootPath(rootId);
     const { dbCategory } = normalizeCategoryPath(category);
@@ -101,9 +112,7 @@ export class FilesService {
       throw new NotFoundException('资源根目录不存在');
     }
 
-    const defaultCategory =
-      this.configService.get<string>('files.defaultCategory') ??
-      'TemporaryFile';
+    const defaultCategory = this.getDefaultCategory();
 
     const targetName = this.validateBasename(newCategory);
     const { dbCategory } = normalizeCategoryPath(category);

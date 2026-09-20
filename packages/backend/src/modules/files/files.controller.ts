@@ -48,6 +48,13 @@ export class FilesController {
     private readonly eventEmitter: EventEmitter2,
   ) {}
 
+  // 单段静态路由，不会与 ':rootId/categories'、':rootId/:category' 等两段路由冲突
+  @Get('config')
+  @ApiOperation({ summary: '获取文件管理下发配置（默认分类等）' })
+  getFileConfig() {
+    return this.service.getFileConfig();
+  }
+
   @Get(':rootId/categories')
   @ApiOperation({ summary: '获取指定根目录下的分类列表' })
   @ApiParam({ name: 'rootId', description: '根目录 ID' })
