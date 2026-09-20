@@ -6,6 +6,8 @@ import tseslint from 'typescript-eslint';
 export default [
   {
     ignores: [
+      'auto-imports.d.ts',
+      'components.d.ts',
       'eslint.config.mjs',
       'public/**/*',
       'script/**/*',

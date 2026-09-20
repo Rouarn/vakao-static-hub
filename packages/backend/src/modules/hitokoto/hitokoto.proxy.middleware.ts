@@ -36,7 +36,7 @@ export class HitokotoProxyMiddleware implements NestMiddleware, OnModuleInit {
       target,
       changeOrigin: true,
       pathRewrite: {
-        '^/api/hitokoto': '',
+        '^/static/hitokoto': '',
       },
       on: {
         proxyReq: (proxyReq: ClientRequest, req: Request) => {
