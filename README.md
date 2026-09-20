@@ -12,7 +12,7 @@
 
 ## 核心特性
 
-- **多根目录管理**：动态增删资源根目录，配置持久化到 `resources.json`，支持服务器目录浏览；系统启动时会幂等注册内置 `software-update` 根目录
+- **多根目录管理**：动态增删资源根目录，配置持久化到 `resource-roots.json`，支持服务器目录浏览；系统启动时会幂等注册内置 `software-update` 根目录
 - **文件管理**：上传、删除、重命名、分页浏览、关键词搜索、多字段排序（名称 / 大小 / 修改时间）
 - **文件索引**：SQLite (better-sqlite3) + TypeORM，启动时全量扫描，每 5 分钟自动同步，根目录变更时事件驱动刷新
 - **图片处理**：基于 Sharp，支持缩放、格式转换（webp/jpeg/png）、质量调节，磁盘缓存 `{FILE_ROOT}/.cache/thumbnails`
@@ -102,18 +102,18 @@ pnpm dev
 
 ### 数据库
 
-| 变量             | 默认值                     | 说明            |
-| ---------------- | -------------------------- | --------------- |
-| `DB_PATH`        | `<cwd>/resources/vakao.db` | SQLite 文件路径 |
-| `DB_SYNCHRONIZE` | `true`                     | 是否自动建表    |
+| 变量             | 默认值                   | 说明            |
+| ---------------- | ------------------------ | --------------- |
+| `DB_PATH`        | `<cwd>/storage/vakao.db` | SQLite 文件路径 |
+| `DB_SYNCHRONIZE` | `true`                   | 是否自动建表    |
 
 ### 文件
 
-| 变量               | 默认值            | 说明               |
-| ------------------ | ----------------- | ------------------ |
-| `FILE_ROOT`        | `<cwd>/resources` | 文件存储根目录     |
-| `UPLOAD_MAX_COUNT` | `20`              | 单次上传最大文件数 |
-| `DEFAULT_CATEGORY` | `TemporaryFile`   | 默认分类目录名     |
+| 变量               | 默认值          | 说明               |
+| ------------------ | --------------- | ------------------ |
+| `FILE_ROOT`        | `<cwd>/storage` | 文件存储根目录     |
+| `UPLOAD_MAX_COUNT` | `20`            | 单次上传最大文件数 |
+| `DEFAULT_CATEGORY` | `TemporaryFile` | 默认分类目录名     |
 
 ### 定时任务
 
@@ -157,7 +157,7 @@ vakao-static-hub/
 │   │       │   ├── database/
 │   │       │   │   ├── database.module.ts
 │   │       │   │   └── entities/    # file-entry / user / share-link / app-version / app-upgrade-event
-│   │       │   └── resource-roots/  # resources.json 多根目录 CRUD + 事件广播
+│   │       │   └── resource-roots/  # resource-roots.json 多根目录 CRUD + 事件广播
 │   │       ├── modules/
 │   │       │   ├── auth/            # 登录 / 注册 / profile，JWT 策略，@Public 白名单装饰器
 │   │       │   ├── files/           # 文件 CRUD / 目录浏览 / 索引同步 / Sharp 图片处理
@@ -172,7 +172,7 @@ vakao-static-hub/
 │   └── frontend/                    # @vakao/frontend：Vue 3 + Vite
 ├── script/deploy.js                 # 一键打包部署
 ├── pnpm-workspace.yaml              # workspace + nodeLinker: hoisted + allowBuilds
-└── resources.json                   # 运行时生成的资源根目录配置
+└── resource-roots.json              # 运行时生成的资源根目录配置
 ```
 
 ---
@@ -315,9 +315,9 @@ vakao-static-hub/
 
 ### 多根目录机制
 
-通过 `resources.json` 持久化多个资源根目录配置，`ResourceRootsService` 提供 CRUD 并在变更时广播 `resource.updated` 事件。所有文件操作都通过 `safeJoin` 做路径安全校验，防止路径穿越。
+通过 `resource-roots.json` 持久化多个资源根目录配置，`ResourceRootsService` 提供 CRUD 并在变更时广播 `resource.updated` 事件。所有文件操作都通过 `safeJoin` 做路径安全校验，防止路径穿越。
 
-系统启动时 `AppUpdateService.onModuleInit` 会幂等注册内置根 `{ id: 'software-update', path: 'software-update' }`（与 `resources` 同级），用于存放各应用的 APK 包，结构为 `software-update/[appKey]/v{versionCode}_{versionName}.apk`。
+系统启动时 `AppUpdateService.onModuleInit` 会幂等注册内置根 `{ id: 'software-update', path: 'software-update' }`（与 `storage` 同级），用于存放各应用的 APK 包，结构为 `software-update/[appKey]/v{versionCode}_{versionName}.apk`。
 
 ### 文件索引同步
 

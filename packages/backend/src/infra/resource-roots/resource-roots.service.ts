@@ -7,7 +7,7 @@ import type { ResourceRoot } from '@vakao/shared';
 
 @Injectable()
 export class ResourceRootsService implements OnModuleInit {
-  private readonly configPath = join(process.cwd(), 'resources.json');
+  private readonly configPath = join(process.cwd(), 'resource-roots.json');
   private roots: ResourceRoot[] = [];
 
   constructor(private readonly eventEmitter: EventEmitter2) {}
@@ -30,7 +30,7 @@ export class ResourceRootsService implements OnModuleInit {
       {
         id: 'default',
         name: '默认资源存储',
-        path: 'resources',
+        path: 'storage',
       },
     ];
     await this.saveConfig();

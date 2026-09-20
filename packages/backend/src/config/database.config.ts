@@ -8,7 +8,7 @@ export interface DatabaseConfig {
 
 export const databaseConfigFactory = registerAs('db', (): DatabaseConfig => ({
   path: resolve(
-    process.env.DB_PATH ?? join(process.cwd(), 'resources', 'vakao.db'),
+    process.env.DB_PATH ?? join(process.cwd(), 'storage', 'vakao.db'),
   ),
   synchronize: (process.env.DB_SYNCHRONIZE ?? 'true') === 'true',
 }));

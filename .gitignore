@@ -2,11 +2,11 @@
 dist
 node_modules
 build
-resources
+storage
 software-update
 deploy
 docs
-resources.json
+resource-roots.json
 
 # TypeScript incremental build info
 *.tsbuildinfo

@@ -11,8 +11,7 @@ export class ImageProcessorService {
   private readonly cacheDir: string;
 
   constructor(private readonly configService: ConfigService) {
-    const fileRoot =
-      this.configService.get<string>('files.root') ?? 'resources';
+    const fileRoot = this.configService.get<string>('files.root') ?? 'storage';
     this.cacheDir = resolve(fileRoot, '.cache', 'thumbnails');
   }
 

@@ -41,7 +41,10 @@ export class HitokotoProxyMiddleware implements NestMiddleware, OnModuleInit {
       on: {
         proxyReq: (proxyReq: ClientRequest, req: Request) => {
           const source = req.originalUrl || req.url;
-          const targetUrl = `${proxyReq.protocol}//${proxyReq.host}${proxyReq.path}`;
+          const hostHeader = proxyReq.getHeader('host');
+          const host =
+            typeof hostHeader === 'string' ? hostHeader : proxyReq.host;
+          const targetUrl = `${proxyReq.protocol}//${host}${proxyReq.path}`;
           this.logger.log(
             `请求代理: [${req.method}] ${source} -> ${targetUrl}`,
           );
@@ -63,7 +66,21 @@ export class HitokotoProxyMiddleware implements NestMiddleware, OnModuleInit {
           _req: Request,
           res: (Response & { headersSent?: boolean }) | Socket,
         ) => {
-          this.logger.error(`代理错误: ${err.message}`);
+          // Node 双栈连接（autoSelectFamily）失败时会抛出 message 为空的
+          // AggregateError，真正的原因在 errors[] 中
+          const innerErrors =
+            'errors' in err &&
+            Array.isArray((err as { errors: unknown[] }).errors)
+              ? (err as { errors: Error[] }).errors
+                  .map((e) => e.message)
+                  .join('; ')
+              : '';
+          const detail = err.message || innerErrors || '未知错误';
+          const code =
+            'code' in err && typeof (err as { code: unknown }).code === 'string'
+              ? (err as { code: string }).code
+              : err.name;
+          this.logger.error(`代理错误 [${code}]: ${detail}`);
           if (
             res &&
             typeof res === 'object' &&
@@ -75,7 +92,7 @@ export class HitokotoProxyMiddleware implements NestMiddleware, OnModuleInit {
             res.status(502).json({
               statusCode: 502,
               message: 'Bad Gateway - 代理错误',
-              error: err.message,
+              error: detail,
             });
           }
         },
