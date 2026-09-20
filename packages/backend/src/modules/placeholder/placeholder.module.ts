@@ -4,8 +4,8 @@
  */
 
 import { Module } from '@nestjs/common';
-import { PlaceholderController } from './placeholder.controller';
-import { PlaceholderService } from './placeholder.service';
+import { PlaceholderController } from './placeholder.controller.js';
+import { PlaceholderService } from './placeholder.service.js';
 
 /**
  * 占位图模块类

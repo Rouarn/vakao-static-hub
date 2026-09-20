@@ -10,8 +10,8 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { access } from 'node:fs/promises';
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
-import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service';
-import { ImageProcessorService } from '../files/image-processor.service';
+import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
+import { ImageProcessorService } from '../files/image-processor.service.js';
 
 @Injectable()
 export class PhotoService implements OnModuleInit {

@@ -10,8 +10,8 @@ import { JwtService, JwtSignOptions } from '@nestjs/jwt';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import type { LoginResponse, UserInfo } from '@vakao/shared';
-import { UserEntity } from '../../infra/database/entities/user.entity';
-import { hashPassword, verifyPassword } from './utils/password.util';
+import { UserEntity } from '../../infra/database/entities/user.entity.js';
+import { hashPassword, verifyPassword } from './utils/password.util.js';
 
 /**
  * 认证服务

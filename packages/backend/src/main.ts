@@ -1,12 +1,12 @@
 import { NestFactory } from '@nestjs/core';
-import { AppModule } from './app.module';
+import { AppModule } from './app.module.js';
 import { json, urlencoded } from 'express';
 import * as express from 'express';
 import { mkdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
-import { ResponseInterceptor } from './common/response.interceptor';
-import { HttpExceptionFilter } from './common/http-exception.filter';
-import { LoggingInterceptor } from './common/interceptors/logging.interceptor';
+import { ResponseInterceptor } from './common/response.interceptor.js';
+import { HttpExceptionFilter } from './common/http-exception.filter.js';
+import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js';
 import { ConsoleLogger, Logger, ValidationPipe } from '@nestjs/common';
 
 class CustomLogger extends ConsoleLogger {
@@ -16,8 +16,8 @@ class CustomLogger extends ConsoleLogger {
 }
 import { ConfigService } from '@nestjs/config';
 import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import type { ServerConfig } from './config/server.config';
-import type { FileConfig } from './config/file.config';
+import type { ServerConfig } from './config/server.config.js';
+import type { FileConfig } from './config/file.config.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {

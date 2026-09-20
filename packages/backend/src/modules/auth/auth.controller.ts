@@ -8,12 +8,12 @@ import {
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
 import type { LoginResponse, UserInfo } from '@vakao/shared';
-import { AuthService } from './auth.service';
-import { LoginDto } from './dto/login.dto';
-import { RegisterDto } from './dto/register.dto';
-import { JwtAuthGuard } from './guards/jwt-auth.guard';
-import { Public } from './decorators/public.decorator';
-import { CurrentUser } from '../../common/decorators/current-user.decorator';
+import { AuthService } from './auth.service.js';
+import { LoginDto } from './dto/login.dto.js';
+import { RegisterDto } from './dto/register.dto.js';
+import { JwtAuthGuard } from './guards/jwt-auth.guard.js';
+import { Public } from './decorators/public.decorator.js';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
 
 /**
  * 认证控制器

@@ -3,11 +3,11 @@ import { ConfigService } from '@nestjs/config';
 import { TypeOrmModule } from '@nestjs/typeorm';
 import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
-import { FileEntryEntity } from './entities/file-entry.entity';
-import { ShareLinkEntity } from './entities/share-link.entity';
-import { AppVersionEntity } from './entities/app-version.entity';
-import { AppUpgradeEventEntity } from './entities/app-upgrade-event.entity';
-import { UserEntity } from './entities/user.entity';
+import { FileEntryEntity } from './entities/file-entry.entity.js';
+import { ShareLinkEntity } from './entities/share-link.entity.js';
+import { AppVersionEntity } from './entities/app-version.entity.js';
+import { AppUpgradeEventEntity } from './entities/app-upgrade-event.entity.js';
+import { UserEntity } from './entities/user.entity.js';
 
 @Module({
   imports: [

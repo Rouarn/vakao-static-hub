@@ -16,16 +16,16 @@ import {
 } from 'node:fs/promises';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { platform } from 'node:os';
-import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service';
+import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity';
-import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity';
+import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
+import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity.js';
 import {
   safeJoin,
   normalizeCategoryPath,
   getFileExtension,
-} from './utils/path-utils';
+} from './utils/path-utils.js';
 
 @Injectable()
 export class FilesService {

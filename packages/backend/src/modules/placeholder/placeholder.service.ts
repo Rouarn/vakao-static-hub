@@ -1,5 +1,5 @@
 import { Injectable, BadRequestException } from '@nestjs/common';
-import { generateDefaultPlaceholder } from './generators/default';
+import { generateDefaultPlaceholder } from './generators/default.js';
 
 export interface PlaceholderOptions {
   width?: string | number;

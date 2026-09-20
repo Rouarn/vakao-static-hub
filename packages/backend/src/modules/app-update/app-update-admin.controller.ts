@@ -26,14 +26,14 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AppUpdateService } from './app-update.service';
-import { ApkUploadInterceptor } from './apk-upload.interceptor';
-import { CreateVersionDto } from './dto/create-version.dto';
-import { ForceUpdateDto } from './dto/force-update.dto';
-import { ListVersionsQueryDto } from './dto/list-versions-query.dto';
-import { PublishVersionDto } from './dto/publish-version.dto';
-import { UpdateVersionDto } from './dto/update-version.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { AppUpdateService } from './app-update.service.js';
+import { ApkUploadInterceptor } from './apk-upload.interceptor.js';
+import { CreateVersionDto } from './dto/create-version.dto.js';
+import { ForceUpdateDto } from './dto/force-update.dto.js';
+import { ListVersionsQueryDto } from './dto/list-versions-query.dto.js';
+import { PublishVersionDto } from './dto/publish-version.dto.js';
+import { UpdateVersionDto } from './dto/update-version.dto.js';
 
 @ApiTags('APP 更新（管理端）')
 @ApiBearerAuth()

@@ -16,12 +16,12 @@ import type { Response } from 'express';
 import { stat } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { basename } from 'node:path';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Public } from '../auth/decorators/public.decorator';
-import { ShareService } from './share.service';
-import { FilesService } from '../files/files.service';
-import { CreateShareLinkDto } from './dto/create-share-link.dto';
-import { getMimeType, isPreviewable } from '../files/utils/mime-types';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { Public } from '../auth/decorators/public.decorator.js';
+import { ShareService } from './share.service.js';
+import { FilesService } from '../files/files.service.js';
+import { CreateShareLinkDto } from './dto/create-share-link.dto.js';
+import { getMimeType, isPreviewable } from '../files/utils/mime-types.js';
 
 @ApiTags('分享链接')
 @Controller('share')

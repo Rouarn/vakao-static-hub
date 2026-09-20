@@ -5,7 +5,13 @@ import tseslint from 'typescript-eslint';
 
 export default [
   {
-    ignores: ['eslint.config.mjs', 'public/**/*', 'script/**/*'],
+    ignores: [
+      'eslint.config.mjs',
+      'public/**/*',
+      'script/**/*',
+      '**/dist/**',
+      '**/deploy/**',
+    ],
   },
   eslint.configs.recommended,
   ...tseslint.configs.recommendedTypeChecked,
@@ -15,7 +21,7 @@ export default [
       globals: {
         ...globals.node,
       },
-      sourceType: 'commonjs',
+      sourceType: 'module',
       parserOptions: {
         projectService: true,
         tsconfigRootDir: import.meta.dirname,

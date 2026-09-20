@@ -24,16 +24,16 @@ import {
   ApiTags,
 } from '@nestjs/swagger';
 import type { Response, Request } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { FilesService } from './files.service';
-import { ListFilesQueryDto } from './dto/list-files-query.dto';
-import { RenameFileDto } from './dto/rename-file.dto';
-import { Public } from '../auth/decorators/public.decorator';
-import { ImageProcessorService } from './image-processor.service';
-import { getMimeType } from './utils/mime-types';
-import { ConfigurableFilesInterceptor } from '../../common/interceptors/configurable-files.interceptor';
-import { serveStaticFile } from '../../utils/file-serve.util';
-import { FileIndexService } from './file-index.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { FilesService } from './files.service.js';
+import { ListFilesQueryDto } from './dto/list-files-query.dto.js';
+import { RenameFileDto } from './dto/rename-file.dto.js';
+import { Public } from '../auth/decorators/public.decorator.js';
+import { ImageProcessorService } from './image-processor.service.js';
+import { getMimeType } from './utils/mime-types.js';
+import { ConfigurableFilesInterceptor } from '../../common/interceptors/configurable-files.interceptor.js';
+import { serveStaticFile } from '../../utils/file-serve.util.js';
+import { FileIndexService } from './file-index.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
 
 @ApiTags('文件管理')

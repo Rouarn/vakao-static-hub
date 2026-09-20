@@ -2,6 +2,7 @@
   "name": "@vakao/backend",
   "version": "0.0.1",
   "private": true,
+  "type": "module",
   "scripts": {
     "dev": "cd ../.. && nest start --watch -c packages/backend/nest-cli.json",
     "build": "cd ../.. && nest build -c packages/backend/nest-cli.json",
@@ -11,35 +12,36 @@
     "format": "prettier --write src"
   },
   "dependencies": {
-    "@nestjs/common": "^11.1.27",
-    "@nestjs/config": "^4.0.4",
-    "@nestjs/core": "^11.1.27",
-    "@nestjs/event-emitter": "^3.1.0",
-    "@nestjs/jwt": "^11.0.2",
-    "@nestjs/passport": "^11.0.5",
-    "@nestjs/platform-express": "^11.1.27",
-    "@nestjs/schedule": "^6.1.3",
-    "@nestjs/swagger": "^11.4.4",
-    "@nestjs/typeorm": "^11.0.2",
+    "@nestjs/common": "^12.0.3",
+    "@nestjs/config": "^12.0.0",
+    "@nestjs/core": "^12.0.3",
+    "@nestjs/event-emitter": "^12.0.1",
+    "@nestjs/jwt": "^12.0.2",
+    "@nestjs/passport": "^12.0.0",
+    "@nestjs/platform-express": "^12.0.3",
+    "@nestjs/schedule": "^12.0.1",
+    "@nestjs/swagger": "^12.0.1",
+    "@nestjs/typeorm": "^12.0.1",
     "@vakao/shared": "workspace:*",
-    "better-sqlite3": "^12.11.1",
+    "better-sqlite3": "^13.0.3",
     "class-transformer": "^0.5.1",
     "class-validator": "^0.15.1",
     "express": "^5.2.1",
-    "http-proxy-middleware": "^4.1.1",
-    "multer": "^2.2.0",
+    "http-proxy-middleware": "^4.2.0",
+    "multer": "^2.4.0",
     "passport": "^0.7.0",
     "passport-jwt": "^4.0.1",
+    "reflect-metadata": "^0.2.2",
     "rxjs": "^7.8.2",
-    "sharp": "^0.35.2",
+    "sharp": "^0.35.4",
     "swagger-ui-express": "^5.0.1",
-    "typeorm": "^0.3.20"
+    "typeorm": "^1.1.1"
   },
   "devDependencies": {
-    "@nestjs/cli": "^11.0.23",
-    "@nestjs/schematics": "^11.1.0",
+    "@nestjs/cli": "^12.0.3",
+    "@nestjs/schematics": "^12.0.3",
     "@types/express": "^5.0.6",
-    "@types/multer": "^2.1.0",
+    "@types/multer": "^2.2.0",
     "@types/passport": "^1.0.17",
     "@types/passport-jwt": "^4.0.1",
     "jest": "^30.4.2",
@@ -47,5 +49,9 @@
     "ts-jest": "^29.4.11",
     "ts-node": "^10.9.2",
     "typescript": "~6.0.3"
+  },
+  "engines": {
+    "node": ">=22.18.0",
+    "pnpm": ">=10.15.0"
   }
 }

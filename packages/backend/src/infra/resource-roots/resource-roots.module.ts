@@ -4,7 +4,7 @@
  */
 
 import { Global, Module } from '@nestjs/common';
-import { ResourceRootsService } from './resource-roots.service';
+import { ResourceRootsService } from './resource-roots.service.js';
 
 /**
  * 资源根目录模块类

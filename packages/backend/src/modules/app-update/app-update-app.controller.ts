@@ -14,10 +14,10 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { AppUpdateService } from './app-update.service';
-import { CreateAppDto } from './dto/create-app.dto';
-import { RenameAppDto } from './dto/rename-app.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { AppUpdateService } from './app-update.service.js';
+import { CreateAppDto } from './dto/create-app.dto.js';
+import { RenameAppDto } from './dto/rename-app.dto.js';
 
 @ApiTags('APP 更新（管理端）')
 @ApiBearerAuth()

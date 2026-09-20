@@ -4,7 +4,7 @@ import { createHash } from 'node:crypto';
 import { mkdir, access, readFile, writeFile } from 'node:fs/promises';
 import { resolve, dirname } from 'node:path';
 import sharp, { Sharp } from 'sharp';
-import { getMimeTypeForFormat } from './utils/mime-types';
+import { getMimeTypeForFormat } from './utils/mime-types.js';
 
 @Injectable()
 export class ImageProcessorService {

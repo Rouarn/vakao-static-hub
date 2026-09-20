@@ -11,13 +11,13 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
 import {
   CreateResourceRootDto,
   UpdateResourceRootDto,
-} from './dto/resource-root.dto';
-import { FilesService } from '../files/files.service';
+} from './dto/resource-root.dto.js';
+import { FilesService } from '../files/files.service.js';
 
 @ApiTags('资源根目录管理')
 @Controller('roots')

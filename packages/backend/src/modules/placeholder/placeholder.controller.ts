@@ -2,7 +2,10 @@ import { Controller, Get, Param, Query, Req, Res } from '@nestjs/common';
 import { ApiTags, ApiOperation, ApiParam, ApiQuery } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
 import { createHash } from 'crypto';
-import { PlaceholderService, PlaceholderOptions } from './placeholder.service';
+import {
+  PlaceholderService,
+  PlaceholderOptions,
+} from './placeholder.service.js';
 
 @ApiTags('占位图服务')
 @Controller('placeholder')

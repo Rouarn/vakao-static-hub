@@ -6,7 +6,7 @@
     "assets": [
       {
         "include": "../public/**/*",
-        "outDir": "deploy/server/public",
+        "outDir": "packages/backend/dist/public",
         "watchAssets": true
       }
     ]

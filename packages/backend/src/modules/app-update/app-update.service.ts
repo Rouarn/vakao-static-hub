@@ -33,26 +33,26 @@ import {
 import { pipeline } from 'node:stream/promises';
 import type { Request } from 'express';
 import { In, Repository } from 'typeorm';
-import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity';
-import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity';
+import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
+import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity.js';
 import {
   AppVersionEntity,
   VERSION_STATUS,
-} from '../../infra/database/entities/app-version.entity';
-import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service';
-import { safeJoin } from '../files/utils/path-utils';
+} from '../../infra/database/entities/app-version.entity.js';
+import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
+import { safeJoin } from '../files/utils/path-utils.js';
 import {
   SOFTWARE_UPDATE_ROOT_ID,
   SOFTWARE_UPDATE_ROOT_PATH,
   ENV_PUBLIC_BASE_URL,
-} from './app-update.constants';
-import { CheckUpdateQueryDto } from './dto/check-update-query.dto';
-import { CreateVersionDto } from './dto/create-version.dto';
-import { ListVersionsQueryDto } from './dto/list-versions-query.dto';
-import { PublishVersionDto } from './dto/publish-version.dto';
-import { ReportEventDto } from './dto/report-event.dto';
-import { UpdateVersionDto } from './dto/update-version.dto';
-import { getApkTmpDir } from './apk-upload.interceptor';
+} from './app-update.constants.js';
+import { CheckUpdateQueryDto } from './dto/check-update-query.dto.js';
+import { CreateVersionDto } from './dto/create-version.dto.js';
+import { ListVersionsQueryDto } from './dto/list-versions-query.dto.js';
+import { PublishVersionDto } from './dto/publish-version.dto.js';
+import { ReportEventDto } from './dto/report-event.dto.js';
+import { UpdateVersionDto } from './dto/update-version.dto.js';
+import { getApkTmpDir } from './apk-upload.interceptor.js';
 
 @Injectable()
 export class AppUpdateService implements OnModuleInit {

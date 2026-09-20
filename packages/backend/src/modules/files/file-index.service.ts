@@ -6,8 +6,8 @@ import { mkdir, readdir, stat } from 'node:fs/promises';
 import { extname, join, resolve } from 'node:path';
 import { In, Not, Repository } from 'typeorm';
 import { InjectRepository } from '@nestjs/typeorm';
-import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service';
-import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity';
+import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
+import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
 
 type FileRecord = Omit<FileEntryEntity, 'id'>;
 

@@ -1,6 +1,6 @@
 import { Module, NestModule, MiddlewareConsumer } from '@nestjs/common';
-import { HitokotoController } from './hitokoto.controller';
-import { HitokotoProxyMiddleware } from './hitokoto.proxy.middleware';
+import { HitokotoController } from './hitokoto.controller.js';
+import { HitokotoProxyMiddleware } from './hitokoto.proxy.middleware.js';
 
 @Module({
   controllers: [HitokotoController],

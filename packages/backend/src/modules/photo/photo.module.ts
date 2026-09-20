@@ -9,10 +9,10 @@
 
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ResourceRootsModule } from '../../infra/resource-roots/resource-roots.module';
-import { FilesModule } from '../files/files.module';
-import { PhotoController } from './photo.controller';
-import { PhotoService } from './photo.service';
+import { ResourceRootsModule } from '../../infra/resource-roots/resource-roots.module.js';
+import { FilesModule } from '../files/files.module.js';
+import { PhotoController } from './photo.controller.js';
+import { PhotoService } from './photo.service.js';
 
 /**
  * 图片模块类

@@ -5,8 +5,8 @@ import {
 } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity';
-import { CreateShareLinkDto } from './dto/create-share-link.dto';
+import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity.js';
+import { CreateShareLinkDto } from './dto/create-share-link.dto.js';
 
 @Injectable()
 export class ShareService {

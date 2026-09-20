@@ -18,12 +18,12 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
 import type { Request, Response } from 'express';
-import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard';
-import { Public } from '../auth/decorators/public.decorator';
-import { serveApkFile } from '../../utils/file-serve.util';
-import { AppUpdateService } from './app-update.service';
-import { CheckUpdateQueryDto } from './dto/check-update-query.dto';
-import { ReportEventDto } from './dto/report-event.dto';
+import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { Public } from '../auth/decorators/public.decorator.js';
+import { serveApkFile } from '../../utils/file-serve.util.js';
+import { AppUpdateService } from './app-update.service.js';
+import { CheckUpdateQueryDto } from './dto/check-update-query.dto.js';
+import { ReportEventDto } from './dto/report-event.dto.js';
 
 @ApiTags('APP 更新（客户端）')
 @Controller('app-updates')

@@ -4,6 +4,6 @@
   "compilerOptions": {
     "declaration": false,
     "noEmit": false,
-    "outDir": "../../deploy/server"
+    "tsBuildInfoFile": "./dist/tsconfig.build.tsbuildinfo"
   }
 }

@@ -3,7 +3,7 @@ import { ConfigService } from '@nestjs/config';
 import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
-import { AuthService } from './auth.service';
+import { AuthService } from './auth.service.js';
 
 /** JWT 载荷：sub 为用户 ID 字符串，username 为用户名 */
 interface JwtPayload {

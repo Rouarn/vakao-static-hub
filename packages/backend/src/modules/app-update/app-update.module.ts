@@ -1,12 +1,12 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity';
-import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity';
-import { AppVersionEntity } from '../../infra/database/entities/app-version.entity';
-import { AppUpdateAdminController } from './app-update-admin.controller';
-import { AppUpdateAppController } from './app-update-app.controller';
-import { AppUpdateClientController } from './app-update-client.controller';
-import { AppUpdateService } from './app-update.service';
+import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
+import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity.js';
+import { AppVersionEntity } from '../../infra/database/entities/app-version.entity.js';
+import { AppUpdateAdminController } from './app-update-admin.controller.js';
+import { AppUpdateAppController } from './app-update-app.controller.js';
+import { AppUpdateClientController } from './app-update-client.controller.js';
+import { AppUpdateService } from './app-update.service.js';
 
 @Module({
   imports: [

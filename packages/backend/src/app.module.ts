@@ -1,18 +1,18 @@
 import { Module } from '@nestjs/common';
 import { EventEmitterModule } from '@nestjs/event-emitter';
-import { AppController } from './app.controller';
-import { AppService } from './app.service';
-import { AppConfigModule } from './config/app-config.module';
-import { DatabaseModule } from './infra/database/database.module';
-import { ResourceRootsModule } from './infra/resource-roots/resource-roots.module';
-import { AuthModule } from './modules/auth/auth.module';
-import { FilesModule } from './modules/files/files.module';
-import { ShareModule } from './modules/share/share.module';
-import { RootsModule } from './modules/roots/roots.module';
-import { PhotoModule } from './modules/photo/photo.module';
-import { PlaceholderModule } from './modules/placeholder/placeholder.module';
-import { HitokotoModule } from './modules/hitokoto/hitokoto.module';
-import { AppUpdateModule } from './modules/app-update/app-update.module';
+import { AppController } from './app.controller.js';
+import { AppService } from './app.service.js';
+import { AppConfigModule } from './config/app-config.module.js';
+import { DatabaseModule } from './infra/database/database.module.js';
+import { ResourceRootsModule } from './infra/resource-roots/resource-roots.module.js';
+import { AuthModule } from './modules/auth/auth.module.js';
+import { FilesModule } from './modules/files/files.module.js';
+import { ShareModule } from './modules/share/share.module.js';
+import { RootsModule } from './modules/roots/roots.module.js';
+import { PhotoModule } from './modules/photo/photo.module.js';
+import { PlaceholderModule } from './modules/placeholder/placeholder.module.js';
+import { HitokotoModule } from './modules/hitokoto/hitokoto.module.js';
+import { AppUpdateModule } from './modules/app-update/app-update.module.js';
 
 @Module({
   imports: [

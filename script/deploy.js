@@ -98,7 +98,7 @@ const frontendDir = path.join(rootDir, 'packages/frontend');
 // 部署输出目录结构：deploy/{web,server}
 const distDir = path.join(rootDir, 'deploy');
 const webDistDir = path.join(distDir, 'web');
-const serverDistDir = path.join(distDir, 'server'); // nest build 已输出到这里
+const serverDistDir = path.join(distDir, 'server'); // 后端编译产物拷贝到这里
 const sharedInServerDir = path.join(serverDistDir, 'shared'); // @vakao/shared 产物存放点
 
 /**
@@ -132,9 +132,16 @@ async function main() {
   log('构建 @vakao/shared...', 'build');
   run('pnpm --filter @vakao/shared build', { cwd: rootDir });
 
-  // 3. 构建后端（NestJS），输出到 deploy/server
+  // 3. 构建后端（NestJS），输出到 packages/backend/dist
   log('构建 @vakao/backend...', 'build');
   run('pnpm --filter @vakao/backend build', { cwd: rootDir });
+
+  // 3.1. 拷贝后端编译产物到 deploy/server
+  log('拷贝后端产物到 deploy/server...', 'copy');
+  await ensureDir(serverDistDir);
+  await copy(path.join(backendDir, 'dist'), serverDistDir, {
+    overwrite: true,
+  });
 
   // 4. 构建前端（Vue + Vite），注入同源 API 地址
   log('构建 @vakao/frontend...', 'build');
@@ -156,9 +163,13 @@ async function main() {
   //    供 deploy/package.json 中 "@vakao/shared": "file:./server/shared" 引用
   log('拷贝 @vakao/shared 到 deploy/server/shared...', 'copy');
   await ensureDir(sharedInServerDir);
-  await copy(path.join(sharedDir, 'dist'), path.join(sharedInServerDir, 'dist'), {
-    overwrite: true,
-  });
+  await copy(
+    path.join(sharedDir, 'dist'),
+    path.join(sharedInServerDir, 'dist'),
+    {
+      overwrite: true,
+    },
+  );
   await copy(
     path.join(sharedDir, 'package.json'),
     path.join(sharedInServerDir, 'package.json'),
@@ -189,6 +200,7 @@ async function main() {
     name: 'vakao-static-hub',
     version: backendPackageJson.version || '0.0.1',
     private: false,
+    type: 'module',
     scripts: {
       start: 'node start-app.js',
     },
@@ -208,11 +220,15 @@ async function main() {
     startAppScriptPath,
     [
       '#!/usr/bin/env node',
-      "const path = require('path');",
+      "import { fileURLToPath } from 'node:url';",
+      "import { dirname, join } from 'node:path';",
+      '',
+      'const __filename = fileURLToPath(import.meta.url);',
+      'const __dirname = dirname(__filename);',
       '',
       'process.chdir(__dirname);',
       '',
-      "require(path.join(__dirname, 'server', 'main.js'));",
+      "await import(join(__dirname, 'server', 'main.js'));",
       '',
     ].join('\n'),
     { encoding: 'utf8' },
