@@ -8,16 +8,16 @@ import { ResponseInterceptor } from './common/response.interceptor.js';
 import { HttpExceptionFilter } from './common/http-exception.filter.js';
 import { LoggingInterceptor } from './common/interceptors/logging.interceptor.js';
 import { ConsoleLogger, Logger, ValidationPipe } from '@nestjs/common';
+import { ConfigService } from '@nestjs/config';
+import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
+import type { ServerConfig } from './config/server.config.js';
+import type { FileConfig } from './config/file.config.js';
 
 class CustomLogger extends ConsoleLogger {
   protected getTimestamp(): string {
     return new Date().toLocaleString('sv-SE', { hour12: false });
   }
 }
-import { ConfigService } from '@nestjs/config';
-import { DocumentBuilder, SwaggerModule } from '@nestjs/swagger';
-import type { ServerConfig } from './config/server.config.js';
-import type { FileConfig } from './config/file.config.js';
 
 async function bootstrap() {
   const app = await NestFactory.create(AppModule, {
@@ -115,7 +115,8 @@ async function bootstrap() {
   const port = serverCfg?.port ?? 9865;
   await app.listen(port);
 
-  logger.log(`Server running on port http://localhost:${port}`);
+  logger.log(`客户端已启动，监听端口：http://localhost:9867`);
+  logger.log(`服务端已启动，监听端口: http://localhost:${port}`);
 }
 
 void bootstrap();
