@@ -1,5 +1,6 @@
 <script setup lang="ts">
-import { NButton, NIcon } from 'naive-ui';
+import { computed, h } from 'vue';
+import { NButton, NIcon, NDropdown, type DropdownOption } from 'naive-ui';
 import {
   MenuOutline,
   CloudOutline,
@@ -9,6 +10,7 @@ import {
   LogOutOutline,
   MoonOutline,
   SunnyOutline,
+  EllipsisHorizontalOutline,
 } from '@vicons/ionicons5';
 import { useDark, useToggle } from '@vueuse/core';
 import { useAuthStore } from '@/stores/modules/auth';
@@ -24,11 +26,62 @@ const emit = defineEmits<{
   (e: 'openUploadModal'): void;
   (e: 'logout'): void;
 }>();
+
+const mobileMenuOptions = computed<DropdownOption[]>(() => [
+  {
+    key: 'user-info',
+    type: 'render',
+    render: () =>
+      h(
+        'div',
+        { class: 'flex items-center gap-2 px-2 py-1 text-sm text-base' },
+        [
+          h(NIcon, { size: 18 }, { default: () => h(PersonCircleOutline) }),
+          h('span', authStore.userInfo?.username || '用户'),
+        ],
+      ),
+  },
+  { type: 'divider', key: 'divider-user' },
+  {
+    key: 'refresh',
+    label: '刷新缓存',
+    icon: () => h(NIcon, null, { default: () => h(RefreshOutline) }),
+  },
+  {
+    key: 'theme',
+    label: isDark.value ? '切换到浅色模式' : '切换到深色模式',
+    icon: () =>
+      h(NIcon, null, {
+        default: () => h(isDark.value ? SunnyOutline : MoonOutline),
+      }),
+  },
+  { type: 'divider', key: 'divider-actions' },
+  {
+    key: 'logout',
+    label: '退出登录',
+    icon: () => h(NIcon, null, { default: () => h(LogOutOutline) }),
+    props: { style: 'color: #d03050;' },
+  },
+]);
+
+function handleMobileMenuSelect(key: string) {
+  switch (key) {
+    case 'refresh':
+      emit('refreshCache');
+      break;
+    case 'theme':
+      toggleDark();
+      break;
+    case 'logout':
+      emit('logout');
+      break;
+  }
+}
 </script>
 
 <template>
   <header
-    class="flex w-full items-center justify-between bg-base px-6 z-10 border-b border-base"
+    class="flex w-full items-center justify-between bg-base px-3 sm:px-6 z-10 border-b border-base"
   >
     <div class="flex items-center gap-3">
       <NButton
@@ -54,7 +107,7 @@ const emit = defineEmits<{
       <NButton
         quaternary
         circle
-        class="text-gray-500 hover:bg-container transition-all"
+        class="hidden text-gray-500 hover:bg-container transition-all sm:inline-flex"
         :title="isDark ? '切换到浅色模式' : '切换到深色模式'"
         @click="toggleDark()"
       >
@@ -68,7 +121,7 @@ const emit = defineEmits<{
 
       <NButton
         quaternary
-        class="border border-base text-gray-500 hover:bg-container transition-all"
+        class="hidden border border-base text-gray-500 hover:bg-container transition-all sm:inline-flex"
         title="刷新文件缓存"
         @click="emit('refreshCache')"
       >
@@ -89,7 +142,9 @@ const emit = defineEmits<{
         <span class="hidden sm:inline">上传文件</span>
       </NButton>
 
-      <div class="flex items-center gap-2 border-l border-base pl-4 ml-2">
+      <div
+        class="hidden items-center gap-2 border-l border-base pl-4 ml-2 sm:flex"
+      >
         <div
           class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary"
         >
@@ -110,6 +165,24 @@ const emit = defineEmits<{
           </template>
         </NButton>
       </div>
+
+      <NDropdown
+        :options="mobileMenuOptions"
+        trigger="click"
+        placement="bottom-end"
+        @select="handleMobileMenuSelect"
+      >
+        <NButton
+          quaternary
+          circle
+          class="text-gray-500 hover:bg-container transition-all sm:hidden"
+          title="更多操作"
+        >
+          <template #icon>
+            <NIcon><EllipsisHorizontalOutline /></NIcon>
+          </template>
+        </NButton>
+      </NDropdown>
     </div>
   </header>
 </template>
