@@ -5,7 +5,6 @@ build
 storage
 software-update
 deploy
-docs
 resource-roots.json
 
 # TypeScript incremental build info
