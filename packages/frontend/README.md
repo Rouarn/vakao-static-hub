@@ -44,7 +44,7 @@ cd packages/frontend
 pnpm dev
 ```
 
-开发服务器默认运行在 `http://localhost:9867`，Vite 代理 `/static` 与 `/api` 到后端 `http://localhost:9865`。API 基础地址通过环境变量 `VITE_API_BASE_URL` 配置。
+开发服务器默认运行在 `http://localhost:9867`，Vite 代理 `/static`（业务接口）与 `^/docs`（Swagger 文档）到后端 `http://localhost:9865`。API 基础地址通过环境变量 `VITE_API_BASE_URL` 配置，开发环境留空以走相对路径代理。
 
 ---
 

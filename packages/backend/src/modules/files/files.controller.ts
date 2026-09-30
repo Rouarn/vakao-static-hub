@@ -29,6 +29,7 @@ import { FilesService } from './files.service.js';
 import { ListFilesQueryDto } from './dto/list-files-query.dto.js';
 import { RenameFileDto } from './dto/rename-file.dto.js';
 import { RenameCategoryDto } from './dto/rename-category.dto.js';
+import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from '../auth/decorators/public.decorator.js';
 import { ImageProcessorService } from './image-processor.service.js';
 import { getMimeType } from './utils/mime-types.js';
@@ -140,6 +141,9 @@ export class FilesController {
   }
 
   @Public()
+  // 图片墙/文件列表会并发加载大量缩略图，属于幂等可缓存的静态资源请求，
+  // 不应占用全局限流预算（默认每 IP 每分钟 300 次），否则翻页即触发 429
+  @SkipThrottle()
   @Get(':rootId/:category/*path')
   @ApiOperation({ summary: '下载或预览文件' })
   @ApiParam({ name: 'rootId', description: '根目录 ID' })

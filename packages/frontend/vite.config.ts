@@ -38,7 +38,9 @@ export default defineConfig({
     port: 9867,
     proxy: {
       '/static': { target: 'http://localhost:9865', changeOrigin: true },
-      '/api': { target: 'http://localhost:9865', changeOrigin: true },
+      // Swagger UI 页面(/docs)、其静态资源(/docs/*)与 OpenAPI JSON(/docs-json)
+      // 不用 ^ 前缀的字符串键无法匹配 /docs-json，故使用正则
+      '^/docs': { target: 'http://localhost:9865', changeOrigin: true },
     },
   },
   build: {
