@@ -22,7 +22,7 @@ import { UserEntity } from './entities/user.entity.js';
           type: 'sqljs' as const,
           location: database,
           autoSave: true,
-          synchronize: configService.get<boolean>('db.synchronize') ?? true,
+          synchronize: configService.get<boolean>('db.synchronize') ?? false,
           entities: [
             FileEntryEntity,
             ShareLinkEntity,

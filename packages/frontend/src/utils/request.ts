@@ -25,7 +25,13 @@ http.interceptors.response.use(
     if (error.response && error.response.status === 401) {
       const authStore = useAuthStore();
       authStore.clearAuth();
-      void router.push({ name: 'login' });
+      // 已在登录页时不重复跳转，并保留 redirect 便于登录后回跳
+      if (router.currentRoute.value.name !== 'login') {
+        void router.push({
+          name: 'login',
+          query: { redirect: router.currentRoute.value.fullPath },
+        });
+      }
     }
     return Promise.reject(
       error instanceof Error ? error : new Error(String(error)),

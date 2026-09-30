@@ -7,6 +7,7 @@ import {
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiBody, ApiOperation, ApiTags } from '@nestjs/swagger';
+import { Throttle } from '@nestjs/throttler';
 import type { LoginResponse, UserInfo } from '@vakao/shared';
 import { AuthService } from './auth.service.js';
 import { LoginDto } from './dto/login.dto.js';
@@ -26,12 +27,12 @@ export class AuthController {
   constructor(private readonly authService: AuthService) {}
 
   /**
-   * 用户注册接口
-   * 校验用户名唯一后创建用户，并直接返回 JWT 令牌（注册即登录）
+   * 用户注册接口（仅已登录用户可用，用于管理员创建新账号）
+   * 校验用户名唯一后创建用户
    */
-  @Public()
   @Post('register')
-  @ApiOperation({ summary: '用户注册' })
+  @ApiBearerAuth()
+  @ApiOperation({ summary: '创建新用户（需登录）' })
   @ApiBody({ type: RegisterDto, description: '注册信息' })
   async register(@Body() body: RegisterDto): Promise<LoginResponse> {
     return await this.authService.register(body.username, body.password);
@@ -42,6 +43,7 @@ export class AuthController {
    * 验证用户名密码并返回 JWT 令牌
    */
   @Public()
+  @Throttle({ default: { limit: 5, ttl: 60_000 } })
   @Post('login')
   @ApiOperation({ summary: '用户登录' })
   @ApiBody({ type: LoginDto, description: '登录凭证' })

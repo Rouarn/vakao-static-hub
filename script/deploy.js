@@ -117,10 +117,48 @@ function run(command, options = {}) {
 }
 
 async function main() {
-  // 1. 清理并初始化 deploy 目录
+  // 0. 前置安全检查：JWT_SECRET 必须已配置且不是公开默认值，
+  //    否则打包出的部署包会让任何人都能自签管理员令牌
   showBanner('Vakao Static Hub Deploy');
+  const envPath = path.join(rootDir, '.env');
+  if (await pathExists(envPath)) {
+    const envContent = await fs.readFile(envPath, 'utf8');
+    const secretMatch = envContent.match(/^JWT_SECRET=(.+)$/m);
+    const secret = secretMatch?.[1]?.trim();
+    if (!secret || secret === 'change-me-in-env') {
+      throw new Error(
+        '.env 中 JWT_SECRET 缺失或仍为默认值 change-me-in-env，拒绝打包部署',
+      );
+    }
+  } else {
+    log(
+      '未找到根目录 .env 文件，部署包将使用默认配置或系统环境变量',
+      'warning',
+    );
+  }
+
   log('开始构建 monorepo 各包并整理输出目录...', 'info');
 
+  // 1. 构建共享类型包（前后端都依赖）
+  //    注意：先完成全部构建，成功后再清理 deploy/，
+  //    避免构建失败时把已有的可用部署产物清空
+  log('构建 @vakao/shared...', 'build');
+  run('pnpm --filter @vakao/shared build', { cwd: rootDir });
+
+  // 2. 构建后端（NestJS），输出到 packages/backend/dist
+  log('构建 @vakao/backend...', 'build');
+  run('pnpm --filter @vakao/backend build', { cwd: rootDir });
+
+  // 3. 构建前端（Vue + Vite），注入同源 API 地址
+  log('构建 @vakao/frontend...', 'build');
+  run('pnpm --filter @vakao/frontend build', {
+    cwd: rootDir,
+    env: {
+      VITE_API_BASE_URL: 'origin',
+    },
+  });
+
+  // 4. 全部构建成功后，清理并初始化 deploy 目录
   log('清理 deploy 目录...', 'clean');
   try {
     await emptyDir(distDir);
@@ -128,28 +166,11 @@ async function main() {
     log('无法完全清理 deploy 目录，可能被占用。尝试继续...', 'warning');
   }
 
-  // 2. 构建共享类型包（前后端都依赖）
-  log('构建 @vakao/shared...', 'build');
-  run('pnpm --filter @vakao/shared build', { cwd: rootDir });
-
-  // 3. 构建后端（NestJS），输出到 packages/backend/dist
-  log('构建 @vakao/backend...', 'build');
-  run('pnpm --filter @vakao/backend build', { cwd: rootDir });
-
-  // 3.1.移动后端编译产物到 deploy/server
+  // 4.1.移动后端编译产物到 deploy/server
   log('移动后端产物到 deploy/server...', 'copy');
   await ensureDir(serverDistDir);
   await move(path.join(backendDir, 'dist'), serverDistDir, {
     overwrite: true,
-  });
-
-  // 4. 构建前端（Vue + Vite），注入同源 API 地址
-  log('构建 @vakao/frontend...', 'build');
-  run('pnpm --filter @vakao/frontend build', {
-    cwd: rootDir,
-    env: {
-      VITE_API_BASE_URL: 'origin',
-    },
   });
 
   // 5. 移动前端静态资源到 deploy/web
@@ -178,16 +199,10 @@ async function main() {
     { overwrite: true },
   );
 
-  // 7. 复制环境变量文件 .env 到 deploy/.env
-  const envPath = path.join(rootDir, '.env');
+  // 7. 复制环境变量文件 .env 到 deploy/.env（前置检查已确保 JWT_SECRET 安全）
   if (await pathExists(envPath)) {
     log('复制 .env 到 deploy/.env...', 'copy');
     await copy(envPath, path.join(distDir, '.env'), { overwrite: true });
-  } else {
-    log(
-      '未找到根目录 .env 文件，部署包将使用默认配置或系统环境变量',
-      'warning',
-    );
   }
 
   // 8. 生成部署用 package.json（从 backend 依赖派生，@vakao/shared 改为 file: 引用）

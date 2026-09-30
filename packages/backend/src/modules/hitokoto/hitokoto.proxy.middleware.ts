@@ -35,6 +35,9 @@ export class HitokotoProxyMiddleware implements NestMiddleware, OnModuleInit {
     this.proxy = createProxyMiddleware({
       target,
       changeOrigin: true,
+      // 上游 10 秒无响应则断开，交由 error 回调返回 502，
+      // 避免上游不可达时前端请求一直挂起
+      timeout: 10_000,
       pathRewrite: {
         '^/static/hitokoto': '',
       },

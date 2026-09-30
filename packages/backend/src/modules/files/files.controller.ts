@@ -183,7 +183,11 @@ export class FilesController {
       await serveStaticFile(fullPath, filename, req, res, {
         download: isDownload,
       });
-    } catch {
+    } catch (e) {
+      // 路径穿越等非法请求返回 400，其余（不存在/读取失败）返回 404
+      if (e instanceof Error && e.message === 'Invalid path') {
+        throw new BadRequestException('Invalid file path');
+      }
       throw new NotFoundException('File not found');
     }
   }

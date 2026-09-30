@@ -19,6 +19,7 @@ const message = useMessage();
 const showRootSettings = ref(false);
 const showUploadModal = ref(false);
 const showDeleteModal = ref(false);
+const showLogoutModal = ref(false);
 const deleteTargetPath = ref('');
 const isSidebarOpen = ref(false);
 
@@ -55,6 +56,12 @@ async function handleUploadSuccess(category: string) {
   await store.loadFiles();
 }
 
+function confirmLogout() {
+  authStore.clearAuth();
+  showLogoutModal.value = false;
+  router.replace({ name: 'login' });
+}
+
 onMounted(() => {
   store.init();
 });
@@ -67,12 +74,7 @@ onMounted(() => {
       @toggle-sidebar="isSidebarOpen = !isSidebarOpen"
       @refresh-cache="refreshCache"
       @open-upload-modal="showUploadModal = true"
-      @logout="
-        () => {
-          authStore.clearAuth();
-          router.replace({ name: 'login' });
-        }
-      "
+      @logout="showLogoutModal = true"
     />
 
     <div class="flex flex-1 overflow-hidden">
@@ -114,6 +116,16 @@ onMounted(() => {
       positive-text="删除"
       negative-text="取消"
       @positive-click="confirmDelete"
+    />
+
+    <NModal
+      v-model:show="showLogoutModal"
+      preset="dialog"
+      title="退出登录"
+      content="确定要退出当前账号吗？"
+      positive-text="退出"
+      negative-text="取消"
+      @positive-click="confirmLogout"
     />
   </div>
 </template>

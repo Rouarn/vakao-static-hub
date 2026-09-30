@@ -31,8 +31,14 @@ async function bootstrap() {
 
   app.setGlobalPrefix(serverCfg?.staticPrefix ?? 'static');
 
+  // CORS 白名单：默认不开放跨域（生产同源部署、开发走 Vite proxy）；
+  // 需要跨域时通过 CORS_ORIGIN 配置逗号分隔的来源列表
+  const corsOrigins = (serverCfg?.corsOrigin ?? '')
+    .split(',')
+    .map((o) => o.trim())
+    .filter(Boolean);
   app.enableCors({
-    origin: true,
+    origin: corsOrigins.length > 0 ? corsOrigins : false,
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
@@ -57,14 +63,16 @@ async function bootstrap() {
     }),
   );
 
-  const swaggerConfig = new DocumentBuilder()
-    .setTitle('Vakao Static Hub 接口文档')
-    .setDescription('静态资源托管服务的后端 API 文档')
-    .setVersion('1.0.0')
-    .addBearerAuth()
-    .build();
-  const swaggerDoc = SwaggerModule.createDocument(app, swaggerConfig);
-  SwaggerModule.setup('docs', app, swaggerDoc);
+  if (serverCfg?.enableSwagger !== false) {
+    const swaggerConfig = new DocumentBuilder()
+      .setTitle('Vakao Static Hub 接口文档')
+      .setDescription('静态资源托管服务的后端 API 文档')
+      .setVersion('1.0.0')
+      .addBearerAuth()
+      .build();
+    const swaggerDoc = SwaggerModule.createDocument(app, swaggerConfig);
+    SwaggerModule.setup('docs', app, swaggerDoc);
+  }
 
   if (fileCfg?.root) {
     await mkdir(fileCfg.root, { recursive: true });

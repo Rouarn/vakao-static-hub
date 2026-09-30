@@ -44,8 +44,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
         },
       ]),
       ignoreExpiration: false, // 不忽略过期时间，过期将拒绝请求
-      secretOrKey:
-        configService.get<string>('auth.jwtSecret') ?? 'change-me-in-env', // 获取 JWT 密钥
+      secretOrKey: configService.getOrThrow<string>('auth.jwtSecret'), // 获取 JWT 密钥（auth.config 已强制校验非空）
     });
   }
 

@@ -48,6 +48,9 @@ export class RootsController {
   @ApiOperation({ summary: '删除存储根目录' })
   @ApiParam({ name: 'id', description: '根目录 ID' })
   async removeRoot(@Param('id') id: string) {
+    if (id === 'roots') {
+      throw new BadRequestException('Invalid ID');
+    }
     await this.resourceRoots.removeRoot(id);
     return { success: true };
   }
@@ -59,6 +62,9 @@ export class RootsController {
     @Param('id') id: string,
     @Body() body: UpdateResourceRootDto,
   ) {
+    if (id === 'roots') {
+      throw new BadRequestException('Invalid ID');
+    }
     await this.resourceRoots.updateRoot(id, body);
     return this.resourceRoots.getRoots();
   }

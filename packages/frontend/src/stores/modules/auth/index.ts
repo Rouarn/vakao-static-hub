@@ -41,6 +41,8 @@ export const useAuthStore = defineStore(
     };
   },
   {
-    persist: true, // 开启持久化存储
+    // 持久化到 sessionStorage：比 localStorage 生命周期更短，
+    // 降低 token 被长期窃取或跨标签页残留的风险
+    persist: { storage: sessionStorage },
   },
 );

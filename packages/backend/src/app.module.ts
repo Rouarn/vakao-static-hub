@@ -1,5 +1,7 @@
 import { Module } from '@nestjs/common';
+import { APP_GUARD } from '@nestjs/core';
 import { EventEmitterModule } from '@nestjs/event-emitter';
+import { ThrottlerGuard, ThrottlerModule } from '@nestjs/throttler';
 import { AppController } from './app.controller.js';
 import { AppService } from './app.service.js';
 import { AppConfigModule } from './config/app-config.module.js';
@@ -18,6 +20,8 @@ import { AppUpdateModule } from './modules/app-update/app-update.module.js';
   imports: [
     AppConfigModule,
     EventEmitterModule.forRoot({ global: true }),
+    // 全局限流：默认每 IP 每分钟 300 次；登录等敏感接口单独用 @Throttle 收紧
+    ThrottlerModule.forRoot([{ ttl: 60_000, limit: 300 }]),
     DatabaseModule,
     ResourceRootsModule,
     AuthModule,
@@ -30,6 +34,6 @@ import { AppUpdateModule } from './modules/app-update/app-update.module.js';
     AppUpdateModule,
   ],
   controllers: [AppController],
-  providers: [AppService],
+  providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],
 })
 export class AppModule {}

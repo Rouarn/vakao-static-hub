@@ -7,18 +7,21 @@ import {
   RefreshOutline,
   CloudUploadOutline,
   PersonCircleOutline,
+  PersonAddOutline,
   LogOutOutline,
   MoonOutline,
   SunnyOutline,
   EllipsisHorizontalOutline,
 } from '@vicons/ionicons5';
 import { useDark, useToggle } from '@vueuse/core';
+import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/modules/auth';
 
 const isDark = useDark();
 const toggleDark = useToggle(isDark);
 
 const authStore = useAuthStore();
+const router = useRouter();
 
 const emit = defineEmits<{
   (e: 'toggleSidebar'): void;
@@ -55,6 +58,11 @@ const mobileMenuOptions = computed<DropdownOption[]>(() => [
         default: () => h(isDark.value ? SunnyOutline : MoonOutline),
       }),
   },
+  {
+    key: 'create-account',
+    label: '创建账号',
+    icon: () => h(NIcon, null, { default: () => h(PersonAddOutline) }),
+  },
   { type: 'divider', key: 'divider-actions' },
   {
     key: 'logout',
@@ -72,9 +80,33 @@ function handleMobileMenuSelect(key: string) {
     case 'theme':
       toggleDark();
       break;
+    case 'create-account':
     case 'logout':
-      emit('logout');
+      handleUserMenuSelect(key);
       break;
+  }
+}
+
+/** 桌面端用户菜单：创建账号 / 退出登录 */
+const userMenuOptions: DropdownOption[] = [
+  {
+    key: 'create-account',
+    label: '创建账号',
+    icon: () => h(NIcon, null, { default: () => h(PersonAddOutline) }),
+  },
+  {
+    key: 'logout',
+    label: '退出登录',
+    icon: () => h(NIcon, null, { default: () => h(LogOutOutline) }),
+    props: { style: 'color: #d03050;' },
+  },
+];
+
+function handleUserMenuSelect(key: string) {
+  if (key === 'create-account') {
+    void router.push({ name: 'register' });
+  } else if (key === 'logout') {
+    emit('logout');
   }
 }
 </script>
@@ -142,29 +174,25 @@ function handleMobileMenuSelect(key: string) {
         <span class="hidden sm:inline">上传文件</span>
       </NButton>
 
-      <div
-        class="hidden items-center gap-2 border-l border-base pl-4 ml-2 sm:flex"
+      <NDropdown
+        :options="userMenuOptions"
+        trigger="click"
+        placement="bottom-end"
+        @select="handleUserMenuSelect"
       >
         <div
-          class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary"
+          class="hidden items-center gap-2 border-l border-base ml-2 sm:flex cursor-pointer"
         >
-          <NIcon><PersonCircleOutline /></NIcon>
+          <div
+            class="flex h-8 w-8 items-center justify-center rounded-full bg-primary/10 text-primary"
+          >
+            <NIcon><PersonCircleOutline /></NIcon>
+          </div>
+          <span class="hidden sm:inline text-sm font-medium text-base">
+            {{ authStore.userInfo?.username || '用户' }}
+          </span>
         </div>
-        <span class="hidden sm:inline text-sm font-medium text-base">
-          {{ authStore.userInfo?.username || '用户' }}
-        </span>
-        <NButton
-          quaternary
-          circle
-          size="small"
-          title="退出登录"
-          @click="emit('logout')"
-        >
-          <template #icon>
-            <NIcon><LogOutOutline /></NIcon>
-          </template>
-        </NButton>
-      </div>
+      </NDropdown>
 
       <NDropdown
         :options="mobileMenuOptions"
