@@ -19,8 +19,9 @@ import { UserEntity } from './entities/user.entity.js';
           await mkdir(dirname(database), { recursive: true });
         }
         return {
-          type: 'better-sqlite3' as const,
-          database,
+          type: 'sqljs' as const,
+          location: database,
+          autoSave: true,
           synchronize: configService.get<boolean>('db.synchronize') ?? true,
           entities: [
             FileEntryEntity,
