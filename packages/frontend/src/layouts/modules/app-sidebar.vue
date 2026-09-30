@@ -16,6 +16,9 @@ import {
   PeopleOutline,
   PieChartOutline,
   ScanOutline,
+  GridOutline,
+  AppsOutline,
+  StatsChartOutline,
 } from '@vicons/ionicons5';
 import { useFileListStore } from '@/stores/modules/file-list';
 
@@ -32,32 +35,86 @@ const emit = defineEmits<{
   (e: 'openSettings'): void;
 }>();
 
-const SYSTEM_MENUS = [
-  { key: 'share-links', label: '分享链接 Share Links', icon: LinkOutline },
-  { key: 'app-update', label: 'APP 版本管理', icon: CloudDownloadOutline },
-  { key: 'app-update-stats', label: '升级漏斗统计', icon: BarChartOutline },
-  { key: 'storage-stats', label: '存储统计', icon: PieChartOutline },
-  { key: 'duplicate-files', label: '重复文件检测', icon: ScanOutline },
-  { key: 'user-management', label: '用户管理', icon: PeopleOutline },
-  { key: 'api-docs', label: 'API 接口文档', icon: CodeSlashOutline },
-  { key: 'local-file-preview', label: '文件预览 Preview', icon: EyeOutline },
+// 菜单配置：支持分组和二级菜单
+interface MenuItem {
+  key: string;
+  label: string;
+  icon?: any;
+  children?: MenuItem[];
+}
+
+const MENU_CONFIG: MenuItem[] = [
   {
-    key: 'placeholder-generator',
-    label: '占位图 Placeholder',
-    icon: ApertureOutline,
+    key: 'group-content',
+    label: '内容管理',
+    icon: GridOutline,
+    children: [
+      { key: 'share-links', label: '分享链接', icon: LinkOutline },
+      { key: 'app-update', label: 'APP 版本管理', icon: CloudDownloadOutline },
+      { key: 'app-update-stats', label: '升级漏斗统计', icon: BarChartOutline },
+    ],
   },
-  { key: 'hitokoto', label: '一言 hitokoto', icon: SparklesOutline },
-] as const;
+  {
+    key: 'group-analysis',
+    label: '数据分析',
+    icon: StatsChartOutline,
+    children: [
+      { key: 'storage-stats', label: '存储统计', icon: PieChartOutline },
+      { key: 'duplicate-files', label: '重复文件检测', icon: ScanOutline },
+    ],
+  },
+  {
+    key: 'group-system',
+    label: '系统管理',
+    icon: SettingsOutline,
+    children: [
+      { key: 'user-management', label: '用户管理', icon: PeopleOutline },
+      { key: 'api-docs', label: 'API 接口文档', icon: CodeSlashOutline },
+    ],
+  },
+  {
+    key: 'group-tools',
+    label: '实用工具',
+    icon: AppsOutline,
+    children: [
+      { key: 'local-file-preview', label: '文件预览', icon: EyeOutline },
+      {
+        key: 'placeholder-generator',
+        label: '占位图生成',
+        icon: ApertureOutline,
+      },
+      { key: 'hitokoto', label: '一言', icon: SparklesOutline },
+    ],
+  },
+];
+
+// 扁平化所有菜单项用于路由匹配
+const ALL_MENUS = computed(() => {
+  const flat: MenuItem[] = [];
+  const walk = (items: MenuItem[]) => {
+    for (const item of items) {
+      flat.push(item);
+      if (item.children) walk(item.children);
+    }
+  };
+  walk(MENU_CONFIG);
+  return flat;
+});
 
 const rootOptions = computed(() =>
   store.roots.map((r) => ({ label: r.name, value: r.id })),
 );
 
-const menuOptions = computed(() => [
-  {
+function renderIcon(icon: any) {
+  return () => h(NIcon, null, { default: () => h(icon) });
+}
+
+const menuOptions = computed(() => {
+  // 资源分类组（动态）
+  const categoryGroup = {
     key: 'group-categories',
     label: '资源分类',
-    type: 'group',
+    type: 'group' as const,
     children: store.categories.map((cat) => ({
       key: `cat:${cat}`,
       label: cat,
@@ -69,30 +126,34 @@ const menuOptions = computed(() => [
             ),
         }),
     })),
-  },
-  {
-    key: 'group-system',
-    label: '系统功能',
-    type: 'group',
-    children: SYSTEM_MENUS.map((item) => ({
+  };
+
+  // 系统功能组（静态配置），与资源分类一致使用 group 小标题样式
+  const systemGroups = MENU_CONFIG.map((group) => ({
+    key: group.key,
+    label: group.label,
+    type: 'group' as const,
+    children: group.children?.map((item) => ({
       key: item.key,
       label: item.label,
-      icon: () => h(NIcon, null, { default: () => h(item.icon) }),
+      icon: renderIcon(item.icon),
     })),
-  },
-]);
+  }));
+
+  return [categoryGroup, ...systemGroups];
+});
 
 const menuValue = computed(() => {
-  const systemMenu = SYSTEM_MENUS.find((m) => m.key === route.name);
-  return systemMenu ? systemMenu.key : `cat:${store.currentCategory}`;
+  const menu = ALL_MENUS.value.find((m) => m.key === route.name);
+  return menu ? menu.key : `cat:${store.currentCategory}`;
 });
 
 function handleMenuSelect(key: string) {
   if (key === menuValue.value) return;
 
-  const systemMenu = SYSTEM_MENUS.find((m) => m.key === key);
-  if (systemMenu) {
-    router.push({ name: systemMenu.key });
+  const menu = ALL_MENUS.value.find((m) => m.key === key);
+  if (menu) {
+    router.push({ name: menu.key });
   } else if (key.startsWith('cat:')) {
     store.handleCategoryClick(key.slice(4));
   }
@@ -115,6 +176,7 @@ function handleMenuSelect(key: string) {
         :root-indent="18"
         :collapsed-width="48"
         :collapsed-icon-size="18"
+        default-expand-all
         @update:value="handleMenuSelect"
       />
     </div>

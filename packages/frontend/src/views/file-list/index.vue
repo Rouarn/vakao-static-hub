@@ -414,12 +414,9 @@ async function confirmBatchMove() {
           </template>
           批量删除
         </NButton>
-        <button
-          class="text-xs text-gray-500 hover:text-primary px-2"
-          @click="clearSelection"
-        >
+        <NButton size="tiny" quaternary @click="clearSelection">
           取消
-        </button>
+        </NButton>
       </div>
 
       <div

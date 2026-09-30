@@ -1,5 +1,5 @@
 import { get, post, del } from '../utils/request';
-import { http } from '../utils/request';
+import { getApiBaseUrl, getBaseUrl } from '@/utils/env';
 import type {
   ShareLink,
   CreateShareLinkParams,
@@ -24,11 +24,12 @@ export function getShareAccessLogs(token: string) {
   return get<ShareAccessLog[]>(`/share/${token}/access-logs`);
 }
 
+/**
+ * 获取分享链接的完整 URL（前端公开访问页，用于复制分享）
+ * 开发环境 VITE_API_BASE_URL 留空时回退到当前页面 origin
+ */
 export function getShareLinkUrl(token: string) {
-  const base = (http.defaults.baseURL || window.location.origin).replace(
-    /\/$/,
-    '',
-  );
+  const base = (getBaseUrl() || window.location.origin).replace(/\/$/, '');
   return `${base}/share/${token}`;
 }
 
@@ -45,10 +46,14 @@ export function verifySharePassword(token: string, password: string) {
   );
 }
 
-/** 生成带访问令牌的分享文件 URL（用于直接预览/下载） */
+/**
+ * 生成后端分享文件下载 API URL（用于实际预览/下载）
+ * 走 /static API 前缀（开发环境由 Vite proxy 转发到后端）
+ */
 export function getShareFileUrl(token: string, accessToken?: string) {
-  const base = getShareLinkUrl(token);
+  const base = getApiBaseUrl().replace(/\/$/, '');
+  const url = `${base}/share/${token}`;
   return accessToken
-    ? `${base}?accessToken=${encodeURIComponent(accessToken)}`
-    : base;
+    ? `${url}?accessToken=${encodeURIComponent(accessToken)}`
+    : url;
 }
