@@ -13,6 +13,8 @@ import {
   NForm,
   NFormItem,
   NInput,
+  NInputNumber,
+  NDatePicker,
   NSwitch,
   NTooltip,
   NEmpty,
@@ -28,6 +30,8 @@ import {
   CreateOutline,
   AddCircleOutline,
   PhonePortraitOutline,
+  BarChartOutline,
+  ReturnUpBackOutline,
 } from '@vicons/ionicons5';
 import {
   getApps,
@@ -38,6 +42,7 @@ import {
   updateVersion,
   setForceUpdate,
   offlineVersion,
+  rollbackVersion,
   removeVersion,
 } from '@/api/app-update';
 import type { AppVersion } from '@vakao/shared';
@@ -79,7 +84,14 @@ const deleteVersionCount = ref<number | null>(null);
 
 const showEdit = ref(false);
 const editTarget = ref<AppVersion | null>(null);
-const editForm = ref({ versionName: '', updateLog: '', remark: '' });
+const editForm = ref({
+  versionName: '',
+  updateLog: '',
+  remark: '',
+  scheduledPublishAt: null as number | null,
+  scheduledPublishMode: 'full' as 'full' | 'gray',
+  scheduledGrayPercent: 5 as number | null,
+});
 const editSaving = ref(false);
 const editFormRef = ref();
 
@@ -290,6 +302,9 @@ function openEdit(row: AppVersion) {
     versionName: row.versionName,
     updateLog: row.updateLog ?? '',
     remark: row.remark ?? '',
+    scheduledPublishAt: row.scheduledPublishAt ?? null,
+    scheduledPublishMode: row.scheduledPublishMode === 'gray' ? 'gray' : 'full',
+    scheduledGrayPercent: row.scheduledGrayPercent || 5,
   };
   showEdit.value = true;
 }
@@ -301,12 +316,33 @@ async function saveEdit() {
     return;
   }
   if (!editTarget.value) return;
+  if (
+    editForm.value.scheduledPublishAt !== null &&
+    editForm.value.scheduledPublishAt <= Date.now()
+  ) {
+    message.error('定时发布时间必须晚于当前时间');
+    return;
+  }
+  if (
+    editForm.value.scheduledPublishAt !== null &&
+    editForm.value.scheduledPublishMode === 'gray' &&
+    !editForm.value.scheduledGrayPercent
+  ) {
+    message.error('请选择定时灰度发布的百分比');
+    return;
+  }
   editSaving.value = true;
   try {
     await updateVersion(editTarget.value.id, {
       versionName: editForm.value.versionName.trim(),
       updateLog: editForm.value.updateLog.trim() || undefined,
       remark: editForm.value.remark.trim() || undefined,
+      scheduledPublishAt: editForm.value.scheduledPublishAt,
+      scheduledPublishMode: editForm.value.scheduledPublishMode,
+      scheduledGrayPercent:
+        editForm.value.scheduledPublishMode === 'gray'
+          ? (editForm.value.scheduledGrayPercent ?? undefined)
+          : undefined,
     });
     message.success('已保存');
     showEdit.value = false;
@@ -341,6 +377,18 @@ async function handleOffline(row: AppVersion) {
     await loadList();
   } catch (err) {
     message.error(extractErrMsg(err, '下架失败'));
+  }
+}
+
+async function handleRollback(row: AppVersion) {
+  try {
+    const result = await rollbackVersion(row.id);
+    message.success(
+      `已回滚：v${row.versionName} 下架，恢复全量 v${result.restored.versionName}（code ${result.restored.versionCode}）`,
+    );
+    await loadList();
+  } catch (err) {
+    message.error(extractErrMsg(err, '回滚失败'));
   }
 }
 
@@ -391,16 +439,46 @@ const columns = computed<DataTableColumns<AppVersion>>(() => [
   {
     title: '状态',
     key: 'status',
-    width: 110,
+    width: 150,
     render(row) {
       const s = STATUS_MAP[row.status];
       const label =
         row.status === 1 ? `${s.label} ${row.grayPercent}%` : s.label;
-      return h(
-        NTag,
-        { type: s.type, size: 'small', round: true, bordered: false },
-        () => label,
-      );
+      const tags: VNode[] = [
+        h(
+          NTag,
+          { type: s.type, size: 'small', round: true, bordered: false },
+          () => label,
+        ),
+      ];
+      if (row.status === 1 && row.grayAutoIncrement === 1) {
+        tags.push(
+          h(
+            NTag,
+            { size: 'tiny', round: true, bordered: false, type: 'info' },
+            () => '自动递增',
+          ),
+        );
+      }
+      if (row.status === 0 && row.scheduledPublishAt) {
+        tags.push(
+          h(NTooltip, null, {
+            trigger: () =>
+              h(
+                NTag,
+                { size: 'tiny', round: true, bordered: false },
+                () => '定时发布',
+              ),
+            default: () =>
+              `将于 ${formatDate(row.scheduledPublishAt!)} 自动${
+                row.scheduledPublishMode === 'gray'
+                  ? `灰度发布 ${row.scheduledGrayPercent}%`
+                  : '全量发布'
+              }`,
+          }),
+        );
+      }
+      return h('div', { class: 'flex items-center gap-1 flex-wrap' }, tags);
     },
   },
   {
@@ -448,7 +526,7 @@ const columns = computed<DataTableColumns<AppVersion>>(() => [
   {
     title: '操作',
     key: 'actions',
-    width: 270,
+    width: 340,
     fixed: 'right',
     render(row) {
       const actions: VNode[] = [];
@@ -487,6 +565,27 @@ const columns = computed<DataTableColumns<AppVersion>>(() => [
       }
       if (row.status === 1 || row.status === 2) {
         actions.push(
+          h(
+            NPopconfirm,
+            {
+              'positive-text': '回滚',
+              'negative-text': '取消',
+              onPositiveClick: () => handleRollback(row),
+            },
+            {
+              trigger: () =>
+                h(
+                  NButton,
+                  { size: 'small', quaternary: true, type: 'error' },
+                  {
+                    icon: () => h(NIcon, null, () => h(ReturnUpBackOutline)),
+                    default: () => '回滚',
+                  },
+                ),
+              default: () =>
+                `回滚将下架 v${row.versionName}，并恢复上一个全量版本在线，确定？`,
+            },
+          ),
           h(
             NPopconfirm,
             {
@@ -598,6 +697,21 @@ onMounted(() => {
           <template #icon>
             <NIcon :component="RefreshOutline" />
           </template>
+        </NButton>
+        <NButton
+          size="small"
+          @click="
+            $router.push({
+              name: 'app-update-stats',
+              query: { appKey: selectedApp ?? undefined },
+            })
+          "
+          :disabled="!selectedApp"
+        >
+          <template #icon>
+            <NIcon :component="BarChartOutline" />
+          </template>
+          漏斗统计
         </NButton>
         <NButton
           size="small"
@@ -742,6 +856,39 @@ onMounted(() => {
         </NFormItem>
         <NFormItem label="备注">
           <NInput v-model:value="editForm.remark" placeholder="内部备注" />
+        </NFormItem>
+        <NFormItem label="定时发布">
+          <div class="flex flex-col gap-2 w-full">
+            <NDatePicker
+              v-model:value="editForm.scheduledPublishAt"
+              type="datetime"
+              class="w-full"
+              clearable
+              placeholder="留空则不定时发布"
+              :is-date-disabled="(ts: number) => ts <= Date.now()"
+            />
+            <template v-if="editForm.scheduledPublishAt">
+              <NSelect
+                v-model:value="editForm.scheduledPublishMode"
+                :options="[
+                  { label: '全量发布', value: 'full' },
+                  { label: '灰度发布', value: 'gray' },
+                ]"
+              />
+              <NInputNumber
+                v-if="editForm.scheduledPublishMode === 'gray'"
+                v-model:value="editForm.scheduledGrayPercent"
+                class="w-full"
+                :min="1"
+                :max="99"
+                :precision="0"
+                placeholder="定时灰度百分比 1~99"
+              />
+            </template>
+            <p class="text-xs text-gray-400">
+              到点自动按预设模式发布；发布失败（如门禁不满足）会自动取消定时并记录日志
+            </p>
+          </div>
         </NFormItem>
       </NForm>
       <template #footer>

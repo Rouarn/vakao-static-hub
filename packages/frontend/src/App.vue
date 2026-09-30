@@ -3,6 +3,7 @@ import { computed } from 'vue';
 import { RouterView } from 'vue-router';
 import {
   NMessageProvider,
+  NDialogProvider,
   NConfigProvider,
   darkTheme,
   zhCN,
@@ -35,9 +36,11 @@ const themeOverrides: GlobalThemeOverrides = {
     :date-locale="dateZhCN"
   >
     <NMessageProvider>
-      <div class="w-full h-full">
-        <RouterView />
-      </div>
+      <NDialogProvider>
+        <div class="w-full h-full">
+          <RouterView />
+        </div>
+      </NDialogProvider>
     </NMessageProvider>
   </NConfigProvider>
 </template>

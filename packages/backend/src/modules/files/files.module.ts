@@ -10,6 +10,7 @@ import { FileIndexService } from './file-index.service.js';
 import { FilesController } from './files.controller.js';
 import { FilesService } from './files.service.js';
 import { ImageProcessorService } from './image-processor.service.js';
+import { CleanupService } from './cleanup.service.js';
 import { ConfigurableFilesInterceptor } from '../../common/interceptors/configurable-files.interceptor.js';
 
 @Module({
@@ -31,6 +32,7 @@ import { ConfigurableFilesInterceptor } from '../../common/interceptors/configur
     FilesService,
     FileIndexService,
     ImageProcessorService,
+    CleanupService,
     ConfigurableFilesInterceptor,
   ],
   exports: [FilesService, ImageProcessorService],

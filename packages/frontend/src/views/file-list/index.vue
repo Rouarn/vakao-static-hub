@@ -7,7 +7,16 @@ import {
   useVirtualList,
   useWindowSize,
 } from '@vueuse/core';
-import { NIcon, NDataTable, NPagination, NImageGroup } from 'naive-ui';
+import {
+  NIcon,
+  NDataTable,
+  NPagination,
+  NImageGroup,
+  NButton,
+  NModal,
+  NSelect,
+  useMessage,
+} from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import FileCard from './file-card.vue';
 import {
@@ -22,9 +31,13 @@ import {
   CreateOutline,
   ArrowUpOutline,
   ArrowDownOutline,
+  MoveOutline,
+  LinkOutline,
 } from '@vicons/ionicons5';
 import RenameCategoryModal from './components/rename-category-modal.vue';
+import CreateShareModal from './components/create-share-modal.vue';
 import { useFileListStore } from '@/stores/modules/file-list/index.ts';
+import { batchDeleteFiles, batchMoveFiles } from '@/api/files';
 import type { SortField } from '@vakao/shared';
 import { formatSize, formatDate } from '@/utils/format';
 import { buildFileUrl } from '@/utils/url';
@@ -132,7 +145,12 @@ function handleDownload(path: string) {
 
 type FileRow = { path: string; size: number; mtime: string | number };
 
+const checkedRowKeys = ref<string[]>([]);
+
 const columns = computed<DataTableColumns<FileRow>>(() => [
+  {
+    type: 'selection',
+  },
   {
     title: '文件名',
     key: 'path',
@@ -239,7 +257,6 @@ const canRenameCategory = computed(
     store.currentCategory !== store.defaultCategory,
 );
 
-import { NModal, useMessage } from 'naive-ui';
 const message = useMessage();
 
 async function confirmDelete() {
@@ -250,6 +267,76 @@ async function confirmDelete() {
     showDeleteModal.value = false;
   } else {
     message.error('删除失败');
+  }
+}
+
+// ==================== 批量操作 ====================
+
+const showBatchDeleteModal = ref(false);
+const showBatchMoveModal = ref(false);
+const showBatchShareModal = ref(false);
+const batchMoveTarget = ref<string | null>(null);
+const batchLoading = ref(false);
+
+// software-update 根下分类即应用，移动文件会破坏版本记录（与后端校验一致）
+const canBatchMove = computed(() => store.currentRootId !== 'software-update');
+
+const batchMoveOptions = computed(() =>
+  store.categories
+    .filter((cat) => cat !== store.currentCategory)
+    .map((cat) => ({ label: cat, value: cat })),
+);
+
+function clearSelection() {
+  checkedRowKeys.value = [];
+}
+
+async function confirmBatchDelete() {
+  if (checkedRowKeys.value.length === 0) return;
+  batchLoading.value = true;
+  try {
+    const result = await batchDeleteFiles(
+      store.currentRootId,
+      store.currentCategory,
+      checkedRowKeys.value,
+    );
+    message.success(`已删除 ${result.deletedCount} 个文件`);
+    showBatchDeleteModal.value = false;
+    clearSelection();
+    await store.loadFiles();
+  } catch {
+    message.error('批量删除失败');
+  } finally {
+    batchLoading.value = false;
+  }
+}
+
+async function confirmBatchMove() {
+  if (!batchMoveTarget.value || checkedRowKeys.value.length === 0) return;
+  batchLoading.value = true;
+  try {
+    const result = await batchMoveFiles(
+      store.currentRootId,
+      store.currentCategory,
+      checkedRowKeys.value,
+      batchMoveTarget.value,
+    );
+    const failed = result.results.filter((r) => !r.success);
+    if (failed.length > 0) {
+      message.warning(
+        `已移动 ${result.movedCount} 个，${failed.length} 个失败（${failed[0].error ?? '未知错误'}）`,
+      );
+    } else {
+      message.success(`已移动 ${result.movedCount} 个文件`);
+    }
+    showBatchMoveModal.value = false;
+    batchMoveTarget.value = null;
+    clearSelection();
+    await store.loadFiles();
+  } catch (e: any) {
+    message.error(e?.response?.data?.message ?? '批量移动失败');
+  } finally {
+    batchLoading.value = false;
   }
 }
 </script>
@@ -283,6 +370,56 @@ async function confirmDelete() {
         <span id="fileCount" class="text-xs text-gray-500">
           {{ store.totalFiles }} 个文件
         </span>
+      </div>
+
+      <!-- 批量操作栏 -->
+      <div
+        v-if="checkedRowKeys.length > 0"
+        class="flex items-center gap-2 w-full md:w-auto"
+      >
+        <span class="text-xs text-gray-500 mr-1">
+          已选 {{ checkedRowKeys.length }} 项
+        </span>
+        <NButton
+          v-if="canBatchMove"
+          size="tiny"
+          ghost
+          type="primary"
+          @click="showBatchMoveModal = true"
+        >
+          <template #icon>
+            <NIcon><MoveOutline /></NIcon>
+          </template>
+          批量移动
+        </NButton>
+        <NButton
+          size="tiny"
+          ghost
+          type="info"
+          @click="showBatchShareModal = true"
+        >
+          <template #icon>
+            <NIcon><LinkOutline /></NIcon>
+          </template>
+          批量分享
+        </NButton>
+        <NButton
+          size="tiny"
+          ghost
+          type="error"
+          @click="showBatchDeleteModal = true"
+        >
+          <template #icon>
+            <NIcon><TrashOutline /></NIcon>
+          </template>
+          批量删除
+        </NButton>
+        <button
+          class="text-xs text-gray-500 hover:text-primary px-2"
+          @click="clearSelection"
+        >
+          取消
+        </button>
       </div>
 
       <div
@@ -446,6 +583,8 @@ async function confirmDelete() {
       class="mt-4 rounded-xl shadow-sm"
       :columns="columns"
       :data="store.files"
+      :row-key="(row: FileRow) => row.path"
+      v-model:checked-row-keys="checkedRowKeys"
       :bordered="false"
       :single-line="false"
       :flex-height="!isMobile"
@@ -480,6 +619,50 @@ async function confirmDelete() {
       :visible="showRenameCategoryModal"
       :category="store.currentCategory"
       @close="showRenameCategoryModal = false"
+    />
+
+    <!-- 批量删除确认 -->
+    <NModal
+      v-model:show="showBatchDeleteModal"
+      preset="dialog"
+      title="批量删除"
+      :content="`确定删除选中的 ${checkedRowKeys.length} 个文件吗？此操作不可恢复。`"
+      positive-text="删除"
+      negative-text="取消"
+      :positive-button-props="{ loading: batchLoading }"
+      @positive-click="confirmBatchDelete"
+    />
+
+    <!-- 批量移动弹窗 -->
+    <NModal
+      v-model:show="showBatchMoveModal"
+      preset="dialog"
+      title="批量移动"
+      positive-text="移动"
+      negative-text="取消"
+      :positive-button-props="{
+        loading: batchLoading,
+        disabled: !batchMoveTarget,
+      }"
+      @positive-click="confirmBatchMove"
+    >
+      <div class="py-2">
+        <p class="text-sm text-gray-500 mb-3">
+          将选中的 {{ checkedRowKeys.length }} 个文件移动到：
+        </p>
+        <NSelect
+          v-model:value="batchMoveTarget"
+          :options="batchMoveOptions"
+          placeholder="选择目标分类"
+        />
+      </div>
+    </NModal>
+
+    <!-- 批量分享弹窗 -->
+    <CreateShareModal
+      :visible="showBatchShareModal"
+      :file-paths="checkedRowKeys"
+      @close="showBatchShareModal = false"
     />
   </main>
 </template>

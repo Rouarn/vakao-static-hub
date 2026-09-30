@@ -1,5 +1,15 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
-import { IsOptional, IsString, Length, Matches } from 'class-validator';
+import { Type } from 'class-transformer';
+import {
+  IsIn,
+  IsInt,
+  IsOptional,
+  IsString,
+  Length,
+  Matches,
+  Max,
+  Min,
+} from 'class-validator';
 
 export class UpdateVersionDto {
   @ApiPropertyOptional({ description: '版本名', example: '1.0.1' })
@@ -22,4 +32,33 @@ export class UpdateVersionDto {
   @IsString()
   @Length(0, 255)
   remark?: string;
+
+  @ApiPropertyOptional({
+    description: '定时发布时间戳（毫秒），传 null 取消定时发布',
+    example: 1699999999999,
+    nullable: true,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  scheduledPublishAt?: number | null;
+
+  @ApiPropertyOptional({
+    description: '定时发布模式：full 全量 / gray 灰度',
+    enum: ['full', 'gray'],
+  })
+  @IsOptional()
+  @IsIn(['full', 'gray'], { message: 'scheduledPublishMode 仅支持 full 或 gray' })
+  scheduledPublishMode?: 'full' | 'gray';
+
+  @ApiPropertyOptional({
+    description: '定时灰度发布的灰度百分比 1~99',
+    example: 5,
+  })
+  @IsOptional()
+  @Type(() => Number)
+  @IsInt()
+  @Min(1)
+  @Max(99)
+  scheduledGrayPercent?: number;
 }

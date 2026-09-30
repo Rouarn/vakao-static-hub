@@ -5,9 +5,11 @@ import { mkdir } from 'node:fs/promises';
 import { dirname } from 'node:path';
 import { FileEntryEntity } from './entities/file-entry.entity.js';
 import { ShareLinkEntity } from './entities/share-link.entity.js';
+import { ShareAccessLogEntity } from './entities/share-access-log.entity.js';
 import { AppVersionEntity } from './entities/app-version.entity.js';
 import { AppUpgradeEventEntity } from './entities/app-upgrade-event.entity.js';
 import { UserEntity } from './entities/user.entity.js';
+import { AuditLogEntity } from './entities/audit-log.entity.js';
 
 @Module({
   imports: [
@@ -26,9 +28,11 @@ import { UserEntity } from './entities/user.entity.js';
           entities: [
             FileEntryEntity,
             ShareLinkEntity,
+            ShareAccessLogEntity,
             AppVersionEntity,
             AppUpgradeEventEntity,
             UserEntity,
+            AuditLogEntity,
           ],
         };
       },

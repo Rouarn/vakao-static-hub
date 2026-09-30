@@ -29,18 +29,52 @@ export interface ShareLink {
   rootId: string;
   category: string;
   filePath: string;
+  /** 分享类型：file 单文件 / collection 多文件 */
+  shareType: 'file' | 'collection';
+  /** 多文件相对路径列表，仅 shareType='collection' 时存在 */
+  filePaths: string[] | null;
   expiresAt: number | null;
   maxAccesses: number | null;
   accessCount: number;
   createdAt: number;
+  /** 是否设置了访问密码（不会返回密码哈希本身） */
+  hasPassword?: boolean;
+}
+
+/** 分享链接的公开信息（用于访问前判断是否需要密码） */
+export interface ShareInfo {
+  token: string;
+  rootId: string;
+  category: string;
+  filePath: string;
+  shareType: 'file' | 'collection';
+  filePaths: string[] | null;
+  expiresAt: number | null;
+  maxAccesses: number | null;
+  hasPassword: boolean;
 }
 
 export interface CreateShareLinkParams {
   rootId: string;
   category: string;
   filePath: string;
+  /** 分享类型，默认 file */
+  shareType?: 'file' | 'collection';
+  /** 多文件相对路径列表，shareType='collection' 时必填 */
+  filePaths?: string[];
   expiresInMs?: number;
   maxAccesses?: number;
+  /** 访问密码，可选，传入后访问分享需要密码验证 */
+  password?: string;
+}
+
+/** 分享访问记录 */
+export interface ShareAccessLog {
+  id: number;
+  shareToken: string;
+  ip: string | null;
+  userAgent: string | null;
+  accessedAt: number;
 }
 
 /** 登录用户基础信息（不含密码等敏感字段） */
@@ -87,6 +121,16 @@ export interface AppVersion {
   forceUpdate: number;
   minVersionCode: number;
   grayPercent: number;
+  /** 灰度自动递增开关 0/1 */
+  grayAutoIncrement: number;
+  /** 灰度递增时间表 JSON：[{ "hours": 24, "percent": 30 }, ...] */
+  grayIncrementSchedule: string | null;
+  /** 定时发布时间戳（毫秒），仅草稿生效 */
+  scheduledPublishAt: number | null;
+  /** 定时发布模式：full 全量 / gray 灰度 */
+  scheduledPublishMode: string;
+  /** 定时灰度发布的灰度百分比 */
+  scheduledGrayPercent: number;
   status: AppVersionStatus;
   publishTime: number | null;
   remark: string | null;

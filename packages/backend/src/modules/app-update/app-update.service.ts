@@ -13,10 +13,12 @@ import {
   BadRequestException,
   ConflictException,
   Injectable,
+  Logger,
   NotFoundException,
   OnModuleInit,
 } from '@nestjs/common';
 import { ConfigService } from '@nestjs/config';
+import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { createHash } from 'node:crypto';
 import { createReadStream, createWriteStream } from 'node:fs';
@@ -32,7 +34,7 @@ import {
 } from 'node:fs/promises';
 import { pipeline } from 'node:stream/promises';
 import type { Request } from 'express';
-import { In, Repository } from 'typeorm';
+import { In, LessThanOrEqual, Repository } from 'typeorm';
 import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
 import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity.js';
 import {
@@ -56,6 +58,8 @@ import { getApkTmpDir } from './apk-upload.interceptor.js';
 
 @Injectable()
 export class AppUpdateService implements OnModuleInit {
+  private readonly logger = new Logger(AppUpdateService.name);
+
   constructor(
     @InjectRepository(AppVersionEntity)
     private readonly versionRepo: Repository<AppVersionEntity>,
@@ -361,6 +365,13 @@ export class AppUpdateService implements OnModuleInit {
       );
     }
 
+    if (
+      dto.scheduledPublishAt !== undefined &&
+      dto.scheduledPublishAt <= Date.now()
+    ) {
+      throw new BadRequestException('定时发布时间必须晚于当前时间');
+    }
+
     const tmpPath = file.path;
     try {
       await this.assertApkMagic(tmpPath);
@@ -421,6 +432,11 @@ export class AppUpdateService implements OnModuleInit {
             forceUpdate: 0,
             minVersionCode: 0,
             grayPercent: 0,
+            grayAutoIncrement: 0,
+            grayIncrementSchedule: null,
+            scheduledPublishAt: dto.scheduledPublishAt ?? null,
+            scheduledPublishMode: dto.scheduledPublishMode ?? 'full',
+            scheduledGrayPercent: dto.scheduledGrayPercent ?? 0,
             status: VERSION_STATUS.DRAFT,
             publishTime: null,
             createdAt: now,
@@ -493,6 +509,21 @@ export class AppUpdateService implements OnModuleInit {
     if (dto.versionName !== undefined) record.versionName = dto.versionName;
     if (dto.updateLog !== undefined) record.updateLog = dto.updateLog;
     if (dto.remark !== undefined) record.remark = dto.remark;
+    if (dto.scheduledPublishAt !== undefined) {
+      if (
+        dto.scheduledPublishAt !== null &&
+        dto.scheduledPublishAt <= Date.now()
+      ) {
+        throw new BadRequestException('定时发布时间必须晚于当前时间');
+      }
+      record.scheduledPublishAt = dto.scheduledPublishAt;
+    }
+    if (dto.scheduledPublishMode !== undefined) {
+      record.scheduledPublishMode = dto.scheduledPublishMode;
+    }
+    if (dto.scheduledGrayPercent !== undefined) {
+      record.scheduledGrayPercent = dto.scheduledGrayPercent;
+    }
     record.updatedAt = Date.now();
     return await this.versionRepo.save(record);
   }
@@ -510,6 +541,14 @@ export class AppUpdateService implements OnModuleInit {
     const grayPercent = dto.mode === 'gray' ? dto.grayPercent : 0;
     if (dto.mode === 'gray' && !grayPercent) {
       throw new BadRequestException('灰度发布必须提供 grayPercent（1~99）');
+    }
+
+    // 灰度自动递增：必须提供递增时间表
+    const autoIncrement = dto.mode === 'gray' && dto.grayAutoIncrement === true;
+    if (autoIncrement && !dto.grayIncrementSchedule?.length) {
+      throw new BadRequestException(
+        '开启灰度自动递增时必须提供 grayIncrementSchedule',
+      );
     }
 
     const row = await this.versionRepo
@@ -530,6 +569,12 @@ export class AppUpdateService implements OnModuleInit {
     record.status =
       dto.mode === 'gray' ? VERSION_STATUS.GRAY : VERSION_STATUS.PUBLISHED;
     record.grayPercent = grayPercent ?? 0;
+    record.grayAutoIncrement = autoIncrement ? 1 : 0;
+    record.grayIncrementSchedule = autoIncrement
+      ? JSON.stringify(dto.grayIncrementSchedule)
+      : null;
+    // 手动发布后清除定时发布设置，避免状态残留
+    record.scheduledPublishAt = null;
     record.publishTime = Date.now();
     record.updatedAt = Date.now();
     return await this.versionRepo.save(record);
@@ -555,6 +600,69 @@ export class AppUpdateService implements OnModuleInit {
     record.status = VERSION_STATUS.OFFLINE;
     record.updatedAt = Date.now();
     return await this.versionRepo.save(record);
+  }
+
+  /**
+   * 一键回滚：下架目标版本（灰度/全量），并恢复该应用上一个全量版本在线。
+   * 回滚目标取 versionCode 小于目标版本的最大历史版本（全量或已下架，已下架则重新发布）。
+   * 整个状态变更在单事务中完成，保证同一时刻只有一个全量版本在线。
+   */
+  async rollback(id: number) {
+    const record = await this.getExisting(id);
+    if (
+      record.status !== VERSION_STATUS.GRAY &&
+      record.status !== VERSION_STATUS.PUBLISHED
+    ) {
+      throw new BadRequestException('仅发布中（灰度/全量）的版本可回滚');
+    }
+
+    // 回滚目标：同应用内 versionCode 更小的最近一个全量/已下架版本
+    const candidates = await this.versionRepo.find({
+      where: {
+        platform: record.platform,
+        appKey: record.appKey,
+        status: In([VERSION_STATUS.PUBLISHED, VERSION_STATUS.OFFLINE]),
+      },
+      order: { versionCode: 'DESC' },
+    });
+    const rollbackTo = candidates.find(
+      (v) => v.id !== record.id && v.versionCode < record.versionCode,
+    );
+    if (!rollbackTo) {
+      throw new BadRequestException(
+        `应用 ${record.appKey} 不存在可回滚的历史全量版本`,
+      );
+    }
+
+    const now = Date.now();
+    await this.versionRepo.manager.transaction(async (manager) => {
+      await manager.update(
+        AppVersionEntity,
+        { id: record.id },
+        { status: VERSION_STATUS.OFFLINE, updatedAt: now },
+      );
+      if (rollbackTo.status !== VERSION_STATUS.PUBLISHED) {
+        await manager.update(
+          AppVersionEntity,
+          { id: rollbackTo.id },
+          {
+            status: VERSION_STATUS.PUBLISHED,
+            publishTime: now,
+            updatedAt: now,
+          },
+        );
+      }
+    });
+
+    return {
+      success: true,
+      rolledBack: { id: record.id, versionCode: record.versionCode },
+      restored: {
+        id: rollbackTo.id,
+        versionCode: rollbackTo.versionCode,
+        versionName: rollbackTo.versionName,
+      },
+    };
   }
 
   /**
@@ -603,5 +711,91 @@ export class AppUpdateService implements OnModuleInit {
       throw new NotFoundException('版本记录不存在');
     }
     return record;
+  }
+
+  // ==================== 定时任务 ====================
+
+  /**
+   * 灰度自动递增（每小时）：按发布时长匹配递增时间表，扩大灰度比例；
+   * percent 达 100 时自动转为全量
+   */
+  @Cron(CronExpression.EVERY_HOUR)
+  async autoIncrementGray() {
+    const grays = await this.versionRepo.find({
+      where: { status: VERSION_STATUS.GRAY, grayAutoIncrement: 1 },
+    });
+    for (const record of grays) {
+      if (!record.grayIncrementSchedule || !record.publishTime) continue;
+      let steps: { hours: number; percent: number }[];
+      try {
+        steps = JSON.parse(record.grayIncrementSchedule) as {
+          hours: number;
+          percent: number;
+        }[];
+      } catch {
+        this.logger.warn(
+          `版本 id=${record.id} 的灰度递增时间表 JSON 解析失败，跳过`,
+        );
+        continue;
+      }
+      const elapsedHours = (Date.now() - record.publishTime) / 3_600_000;
+      const duePercents = steps
+        .filter((s) => elapsedHours >= s.hours)
+        .map((s) => s.percent);
+      if (duePercents.length === 0) continue;
+      const newPercent = Math.min(100, Math.max(...duePercents));
+      if (newPercent <= record.grayPercent) continue;
+
+      record.grayPercent = newPercent;
+      record.updatedAt = Date.now();
+      if (newPercent >= 100) {
+        record.status = VERSION_STATUS.PUBLISHED;
+        record.grayAutoIncrement = 0;
+        this.logger.log(
+          `应用 ${record.appKey} v${record.versionName} 灰度达 100%，自动转为全量`,
+        );
+      } else {
+        this.logger.log(
+          `应用 ${record.appKey} v${record.versionName} 灰度自动扩量至 ${newPercent}%`,
+        );
+      }
+      await this.versionRepo.save(record);
+    }
+  }
+
+  /**
+   * 定时发布（每 10 分钟）：草稿且到点的版本自动按预设模式发布；
+   * 发布失败（如门禁不满足）时清除定时设置并告警，避免无限重试
+   */
+  @Cron(CronExpression.EVERY_10_MINUTES)
+  async autoPublishScheduled() {
+    const due = await this.versionRepo.find({
+      where: {
+        status: VERSION_STATUS.DRAFT,
+        scheduledPublishAt: LessThanOrEqual(Date.now()),
+      },
+    });
+    for (const record of due) {
+      try {
+        await this.publishVersion(record.id, {
+          mode: record.scheduledPublishMode === 'gray' ? 'gray' : 'full',
+          grayPercent:
+            record.scheduledPublishMode === 'gray'
+              ? record.scheduledGrayPercent
+              : undefined,
+        });
+        this.logger.log(
+          `应用 ${record.appKey} v${record.versionName} 定时发布成功（${record.scheduledPublishMode}）`,
+        );
+      } catch (e) {
+        // 发布失败（如门禁不满足）：清除定时设置避免无限重试，人工介入处理
+        record.scheduledPublishAt = null;
+        record.updatedAt = Date.now();
+        await this.versionRepo.save(record);
+        this.logger.warn(
+          `应用 ${record.appKey} v${record.versionName} 定时发布失败，已清除定时设置：${(e as Error).message}`,
+        );
+      }
+    }
   }
 }

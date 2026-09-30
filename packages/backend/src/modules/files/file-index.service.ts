@@ -64,11 +64,41 @@ export class FileIndexService implements OnApplicationBootstrap {
       .filter((d) => d.isDirectory() && !d.name.startsWith('.'))
       .map((d) => d.name);
 
+    // 全量重建前先快照已有 contentHash：文件大小与修改时间均未变化时
+    // 内容必然未变，可直接保留哈希，避免每次定时同步后重复文件检测都要重新扫盘
+    const existing = await this.repo.find({
+      where: { rootId },
+      select: {
+        category: true,
+        relPath: true,
+        size: true,
+        mtimeMs: true,
+        contentHash: true,
+      },
+    });
+    const hashMap = new Map<string, string>();
+    for (const row of existing) {
+      if (row.contentHash) {
+        hashMap.set(
+          `${row.category}/${row.relPath}`,
+          `${row.size}:${row.mtimeMs}:${row.contentHash}`,
+        );
+      }
+    }
+
     await this.repo.delete({ rootId });
 
     for (const category of categories) {
       const categoryPath = resolve(rootPath, category);
       const records = await this.walkCategory(rootId, category, categoryPath);
+      for (const record of records) {
+        const cached = hashMap.get(`${record.category}/${record.relPath}`);
+        if (cached && cached.startsWith(`${record.size}:${record.mtimeMs}:`)) {
+          record.contentHash = cached.slice(
+            `${record.size}:${record.mtimeMs}:`.length,
+          );
+        }
+      }
       await this.insertInBatches(records);
     }
   }
@@ -115,6 +145,8 @@ export class FileIndexService implements OnApplicationBootstrap {
         ext,
         size: s.size,
         mtimeMs: s.mtimeMs,
+        // 扫盘阶段不计算哈希（IO 开销大），由 syncRoot 按快照恢复或检测接口惰性补算
+        contentHash: null,
       });
     }
 
@@ -128,6 +160,19 @@ export class FileIndexService implements OnApplicationBootstrap {
     const name = relPath.split('/').pop() ?? relPath;
     const ext = extname(name).toLowerCase();
 
+    // 文件内容未变化（大小与修改时间一致）时保留已有哈希
+    const existing = await this.repo.findOne({
+      where: { rootId, category, relPath },
+      select: { size: true, mtimeMs: true, contentHash: true },
+    });
+    const contentHash =
+      existing &&
+      existing.size === s.size &&
+      existing.mtimeMs === s.mtimeMs &&
+      existing.contentHash
+        ? existing.contentHash
+        : null;
+
     await this.repo.upsert(
       {
         rootId,
@@ -137,6 +182,7 @@ export class FileIndexService implements OnApplicationBootstrap {
         ext,
         size: s.size,
         mtimeMs: s.mtimeMs,
+        contentHash,
       },
       ['rootId', 'category', 'relPath'],
     );

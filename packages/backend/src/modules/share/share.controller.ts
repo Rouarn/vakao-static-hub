@@ -4,11 +4,14 @@ import {
   Controller,
   Delete,
   Get,
+  Headers,
+  Ip,
   NotFoundException,
   Param,
   Post,
   Query,
   Res,
+  UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
@@ -44,11 +47,40 @@ export class ShareController {
     return await this.shareService.listShareLinks();
   }
 
+  @Get(':token/access-logs')
+  @ApiOperation({ summary: '获取分享链接的访问记录（仅登录用户可见）' })
+  @ApiParam({ name: 'token', description: '分享 token' })
+  async listAccessLogs(@Param('token') token: string) {
+    return await this.shareService.listAccessLogs(token);
+  }
+
   @Delete(':token')
   @ApiOperation({ summary: '撤销分享链接' })
   @ApiParam({ name: 'token', description: '分享 token' })
   async revokeShareLink(@Param('token') token: string) {
     return await this.shareService.revokeShareLink(token);
+  }
+
+  @Public()
+  @Get(':token/info')
+  @ApiOperation({ summary: '获取分享链接元信息' })
+  @ApiParam({ name: 'token', description: '分享 token' })
+  async getShareInfo(@Param('token') token: string) {
+    return await this.shareService.getShareInfo(token);
+  }
+
+  @Public()
+  @Post(':token/verify')
+  @ApiOperation({ summary: '校验分享密码并返回临时访问令牌' })
+  @ApiParam({ name: 'token', description: '分享 token' })
+  async verifySharePassword(
+    @Param('token') token: string,
+    @Body() body: { password?: string },
+  ) {
+    if (!body?.password) {
+      throw new BadRequestException('请提供访问密码');
+    }
+    return await this.shareService.verifySharePassword(token, body.password);
   }
 
   @Public()
@@ -62,19 +94,50 @@ export class ShareController {
     @Query('h') h: string | undefined,
     @Query('q') q: string | undefined,
     @Query('format') format: string | undefined,
+    @Query('index') index: string | undefined,
+    @Query('accessToken') accessToken: string | undefined,
+    @Ip() ip: string | undefined,
+    @Headers('user-agent') userAgent: string | undefined,
     @Res() res: Response,
   ) {
     try {
-      const linkInfo = await this.shareService.validateAndAccess(token);
+      const linkInfo = await this.shareService.validateAndAccess(
+        token,
+        accessToken,
+      );
+
+      // 校验通过后异步写入访问记录，不阻塞文件响应
+      this.shareService.recordAccess(token, ip ?? null, userAgent ?? null);
+
+      // collection 类型且未指定 index 时，返回文件列表 JSON
+      if (linkInfo.shareType === 'collection' && index === undefined) {
+        res.json({
+          shareType: linkInfo.shareType,
+          category: linkInfo.category,
+          files: linkInfo.filePaths ?? [],
+        });
+        return;
+      }
+
+      // collection 类型且指定了 index 时，按 index 取文件路径
+      const filePath =
+        linkInfo.shareType === 'collection' && index !== undefined
+          ? (linkInfo.filePaths ?? [])[Number(index)]
+          : linkInfo.filePath;
+
+      if (!filePath) {
+        res.status(400).json({ message: '无效的文件索引' });
+        return;
+      }
 
       const fullPath = this.filesService.safeJoinCategory(
         linkInfo.rootId,
         linkInfo.category,
-        [linkInfo.filePath],
+        [filePath],
       );
 
       const s = await stat(fullPath);
-      const mimeType = getMimeType(linkInfo.filePath);
+      const mimeType = getMimeType(filePath);
 
       const needsProcessing =
         mimeType.startsWith('image/') && (w || h || q || format);
@@ -97,7 +160,7 @@ export class ShareController {
       res.setHeader('Cache-Control', 'private, max-age=0, must-revalidate');
 
       if (disposition === 'attachment') {
-        const encodedFilename = encodeURIComponent(basename(linkInfo.filePath));
+        const encodedFilename = encodeURIComponent(basename(filePath));
         res.setHeader(
           'Content-Disposition',
           `attachment; filename*=UTF-8''${encodedFilename}`,
@@ -112,6 +175,8 @@ export class ShareController {
         res.status(404).json({ message: '分享链接不存在' });
       } else if (error instanceof BadRequestException) {
         res.status(400).json({ message: error.message });
+      } else if (error instanceof UnauthorizedException) {
+        res.status(401).json({ message: error.message });
       } else {
         res.status(500).json({ message: '访问文件失败' });
       }

@@ -4,6 +4,7 @@ import { PassportStrategy } from '@nestjs/passport';
 import { ExtractJwt, Strategy } from 'passport-jwt';
 import type { Request } from 'express';
 import { AuthService } from './auth.service.js';
+import { TokenBlacklistService } from './token-blacklist.service.js';
 
 /** JWT 载荷：sub 为用户 ID 字符串，username 为用户名 */
 interface JwtPayload {
@@ -20,6 +21,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
   constructor(
     configService: ConfigService,
     private readonly authService: AuthService,
+    private readonly tokenBlacklist: TokenBlacklistService,
   ) {
     super({
       // 自定义 JWT 提取逻辑
@@ -45,6 +47,7 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
       ]),
       ignoreExpiration: false, // 不忽略过期时间，过期将拒绝请求
       secretOrKey: configService.getOrThrow<string>('auth.jwtSecret'), // 获取 JWT 密钥（auth.config 已强制校验非空）
+      passReqToCallback: true, // 将 Request 传入 validate，用于检查 token 黑名单
     });
   }
 
@@ -52,8 +55,14 @@ export class JwtStrategy extends PassportStrategy(Strategy) {
    * 验证回调
    * JWT 验证通过后调用，返回值将被注入到 req.user 中
    * 同时会校验用户仍然存在于 users 表，已删除用户的旧令牌立即失效
+   * 已登出/吊销的 token 立即拒绝
    */
-  async validate(payload: JwtPayload) {
+  async validate(req: Request, payload: JwtPayload) {
+    const token = ExtractJwt.fromAuthHeaderAsBearerToken()(req);
+    if (token && this.tokenBlacklist.isRevoked(token)) {
+      throw new UnauthorizedException('Token 已失效');
+    }
+
     const userId = Number(payload?.sub);
     if (!Number.isInteger(userId)) {
       throw new UnauthorizedException();

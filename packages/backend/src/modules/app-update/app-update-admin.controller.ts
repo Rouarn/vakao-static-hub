@@ -14,6 +14,7 @@ import {
   Post,
   Put,
   Query,
+  Req,
   UploadedFile,
   UseGuards,
   UseInterceptors,
@@ -26,21 +27,31 @@ import {
   ApiParam,
   ApiTags,
 } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { AppUpdateService } from './app-update.service.js';
+import { AppUpdateStatsService } from './app-update-stats.service.js';
 import { ApkUploadInterceptor } from './apk-upload.interceptor.js';
 import { CreateVersionDto } from './dto/create-version.dto.js';
 import { ForceUpdateDto } from './dto/force-update.dto.js';
+import { FunnelStatsQueryDto } from './dto/funnel-stats-query.dto.js';
 import { ListVersionsQueryDto } from './dto/list-versions-query.dto.js';
 import { PublishVersionDto } from './dto/publish-version.dto.js';
 import { UpdateVersionDto } from './dto/update-version.dto.js';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { AuditLogService } from '../audit-log/audit-log.service.js';
+import { getRequestMeta } from '../../utils/request-meta.util.js';
 
 @ApiTags('APP 更新（管理端）')
 @ApiBearerAuth()
 @Controller('app-updates/versions')
 @UseGuards(JwtAuthGuard)
 export class AppUpdateAdminController {
-  constructor(private readonly service: AppUpdateService) {}
+  constructor(
+    private readonly service: AppUpdateService,
+    private readonly statsService: AppUpdateStatsService,
+    private readonly auditLogService: AuditLogService,
+  ) {}
 
   @Post()
   @ApiOperation({
@@ -79,6 +90,18 @@ export class AppUpdateAdminController {
     return await this.service.listVersions(query);
   }
 
+  @Get('stats/funnel')
+  @ApiOperation({ summary: '升级漏斗统计（按版本聚合各事件转化率）' })
+  async funnelStats(@Query() query: FunnelStatsQueryDto) {
+    const endTime = query.endTime ?? Date.now();
+    const startTime = query.startTime ?? endTime - 30 * 24 * 60 * 60 * 1000;
+    return await this.statsService.getFunnelStats(
+      query.appKey,
+      startTime,
+      endTime,
+    );
+  }
+
   @Get(':id')
   @ApiOperation({ summary: '版本详情' })
   @ApiParam({ name: 'id' })
@@ -102,8 +125,27 @@ export class AppUpdateAdminController {
   async publish(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: PublishVersionDto,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
   ) {
-    return await this.service.publishVersion(id, dto);
+    const result = await this.service.publishVersion(id, dto);
+    // 审计：发布版本
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'app_version.publish',
+      resourceType: 'app_version',
+      resourceId: String(id),
+      details: {
+        appKey: result.appKey,
+        versionName: result.versionName,
+        versionCode: result.versionCode,
+        mode: dto.mode,
+        grayPercent: dto.mode === 'gray' ? dto.grayPercent : undefined,
+      },
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   @Put(':id/force')
@@ -119,8 +161,54 @@ export class AppUpdateAdminController {
   @Post(':id/offline')
   @ApiOperation({ summary: '一键下架（止血开关，文件保留）' })
   @ApiParam({ name: 'id' })
-  async offline(@Param('id', ParseIntPipe) id: number) {
-    return await this.service.offline(id);
+  async offline(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.service.offline(id);
+    // 审计：下架版本
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'app_version.offline',
+      resourceType: 'app_version',
+      resourceId: String(id),
+      details: {
+        appKey: result.appKey,
+        versionName: result.versionName,
+        versionCode: result.versionCode,
+      },
+      ...getRequestMeta(req),
+    });
+    return result;
+  }
+
+  @Post(':id/rollback')
+  @ApiOperation({
+    summary: '一键回滚：下架该版本并恢复上一个全量版本在线',
+  })
+  @ApiParam({ name: 'id' })
+  async rollback(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.service.rollback(id);
+    // 审计：回滚版本
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'app_version.rollback',
+      resourceType: 'app_version',
+      resourceId: String(id),
+      details: {
+        rolledBack: result.rolledBack,
+        restored: result.restored,
+      },
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   @Delete(':id')
@@ -129,7 +217,22 @@ export class AppUpdateAdminController {
       '物理删除版本（仅草稿/已下架，删除 APK 文件及全部关联记录，不可恢复）',
   })
   @ApiParam({ name: 'id' })
-  async remove(@Param('id', ParseIntPipe) id: number) {
-    return await this.service.remove(id);
+  async remove(
+    @Param('id', ParseIntPipe) id: number,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.service.remove(id);
+    // 审计：删除版本
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'app_version.delete',
+      resourceType: 'app_version',
+      resourceId: String(id),
+      details: { eventCount: result.eventCount, fileCount: result.fileCount },
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 }

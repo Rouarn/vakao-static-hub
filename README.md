@@ -21,7 +21,7 @@
 - **一言代理**：反向代理 `hitokoto` 服务，支持任意方法转发并记录请求日志
 - **文件分享链接**：生成带 token 的公开外链，可设置有效期与最大访问次数，访问计数，支持撤销
 - **APP 在线更新中心**：多应用（appKey）独立版本管理，APK 上传自动计算 SHA-256，草稿/灰度/全量/下架四态，灰度按设备哈希稳定分桶，强更开关与最低兼容版本，APK 下载支持 HTTP Range 断点续传，升级事件上报
-- **统一鉴权**：users 表 + 密码哈希，JWT（Bearer Token），注册即登录；`AUTH_USER/AUTH_PASS` 仅用于首次启动播种默认管理员
+- **统一鉴权**：users 表 + 密码哈希，JWT（Bearer Token），注册需登录（管理员创建账号）；`AUTH_USER/AUTH_PASS` 仅用于首次启动播种默认管理员
 - **API 文档**：Swagger UI `/docs`
 - **统一响应格式**：全局拦截器包装 `{ code, message, data }`
 - **SPA 支持**：生产模式下自动挂载前端静态资源并提供 fallback
@@ -193,11 +193,11 @@ vakao-static-hub/
 
 ### 认证
 
-| 方法 | 路径                    | 说明                         | 认证 |
-| ---- | ----------------------- | ---------------------------- | ---- |
-| POST | `/static/auth/login`    | 登录，返回 JWT               | 否   |
-| POST | `/static/auth/register` | 注册（注册即登录，返回 JWT） | 否   |
-| GET  | `/static/auth/profile`  | 获取当前登录用户信息         | 是   |
+| 方法 | 路径                    | 说明                                 | 认证 |
+| ---- | ----------------------- | ------------------------------------ | ---- |
+| POST | `/static/auth/login`    | 登录，返回 JWT                       | 否   |
+| POST | `/static/auth/register` | 创建新用户（需登录后调用，返回 JWT） | 是   |
+| GET  | `/static/auth/profile`  | 获取当前登录用户信息                 | 是   |
 
 ### 资源根目录
 
@@ -298,15 +298,15 @@ vakao-static-hub/
 
 **版本管理（需认证）**
 
-| 方法   | 路径                                                           | 说明                                                       | 认证 |
-| ------ | -------------------------------------------------------------- | ---------------------------------------------------------- | ---- |
-| POST   | `/static/app-updates/versions`                                 | 上传 APK 并创建草稿版本（multipart，自动算大小与 SHA-256） | 是   |
-| GET    | `/static/app-updates/versions?page=&pageSize=&status=&appKey=` | 分页版本列表                                               | 是   |
-| GET    | `/static/app-updates/versions/:id`                             | 版本详情                                                   | 是   |
-| PATCH  | `/static/app-updates/versions/:id`                             | 编辑元数据（仅草稿/已下架可改）                            | 是   |
-| POST   | `/static/app-updates/versions/:id/publish`                     | 发布（`full` 全量 / `gray` 灰度，带门禁校验）              | 是   |
-| PUT    | `/static/app-updates/versions/:id/force`                       | 远程修改强更开关（逃生口，无需重新发版）                   | 是   |
-| POST   | `/static/app-updates/versions/:id/offline`                     | 一键下架（止血开关，文件保留）                             | 是   |
+| 方法   | 路径                                                           | 说明                                                             | 认证 |
+| ------ | -------------------------------------------------------------- | ---------------------------------------------------------------- | ---- |
+| POST   | `/static/app-updates/versions`                                 | 上传 APK 并创建草稿版本（multipart，自动算大小与 SHA-256）       | 是   |
+| GET    | `/static/app-updates/versions?page=&pageSize=&status=&appKey=` | 分页版本列表                                                     | 是   |
+| GET    | `/static/app-updates/versions/:id`                             | 版本详情                                                         | 是   |
+| PATCH  | `/static/app-updates/versions/:id`                             | 编辑元数据（仅草稿/已下架可改）                                  | 是   |
+| POST   | `/static/app-updates/versions/:id/publish`                     | 发布（`full` 全量 / `gray` 灰度，带门禁校验）                    | 是   |
+| PUT    | `/static/app-updates/versions/:id/force`                       | 远程修改强更开关（逃生口，无需重新发版）                         | 是   |
+| POST   | `/static/app-updates/versions/:id/offline`                     | 一键下架（止血开关，文件保留）                                   | 是   |
 | DELETE | `/static/app-updates/versions/:id`                             | 物理删除（仅草稿/已下架，删除 APK 文件及全部关联记录，不可恢复） | 是   |
 
 版本状态：`0` 草稿 / `1` 灰度 / `2` 全量 / `3` 已下架；`(platform, appKey, versionCode)` 唯一。

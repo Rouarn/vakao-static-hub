@@ -1,5 +1,5 @@
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed } from 'vue';
 import {
   NModal,
   NButton,
@@ -7,6 +7,8 @@ import {
   NInputGroup,
   NInputGroupLabel,
   NSpace,
+  NInput,
+  NTag,
   useMessage,
 } from 'naive-ui';
 import { createShareLink, getShareLinkUrl } from '@/api/share';
@@ -15,7 +17,10 @@ import { useFileListStore } from '@/stores/modules/file-list';
 
 const props = defineProps<{
   visible: boolean;
-  filePath: string;
+  /** 单文件分享时的文件路径 */
+  filePath?: string;
+  /** 多文件分享时的文件路径列表 */
+  filePaths?: string[];
 }>();
 
 const emit = defineEmits<{
@@ -47,21 +52,46 @@ const accessLimitOptions = [
 ];
 const selectedAccessLimit = ref(0);
 
+/** 访问密码，留空表示不设置 */
+const password = ref('');
+
+const isCollection = computed(
+  () => props.filePaths !== undefined && props.filePaths.length > 0,
+);
+
 function close() {
   createdToken.value = '';
+  password.value = '';
   emit('close');
 }
 
 async function handleCreate() {
   loading.value = true;
   try {
-    const data = await createShareLink({
+    const params: {
+      rootId: string;
+      category: string;
+      filePath: string;
+      shareType?: 'file' | 'collection';
+      filePaths?: string[];
+      expiresInMs?: number;
+      maxAccesses?: number;
+      password?: string;
+    } = {
       rootId: store.currentRootId,
       category: store.currentCategory,
-      filePath: props.filePath,
+      filePath: isCollection.value ? props.filePaths![0] : props.filePath!,
       expiresInMs: selectedExpire.value || undefined,
       maxAccesses: selectedAccessLimit.value || undefined,
-    });
+      password: password.value || undefined,
+    };
+
+    if (isCollection.value) {
+      params.shareType = 'collection';
+      params.filePaths = props.filePaths;
+    }
+
+    const data = await createShareLink(params);
     createdToken.value = data.token;
     message.success('分享链接已创建');
   } catch (error: any) {
@@ -94,7 +124,27 @@ function copyLink() {
     "
   >
     <div class="space-y-4">
-      <div class="text-sm text-gray-500 truncate" :title="props.filePath">
+      <div v-if="isCollection">
+        <div class="text-sm text-gray-500 mb-2">
+          共 {{ props.filePaths!.length }} 个文件
+        </div>
+        <div class="flex flex-wrap gap-1 max-h-32 overflow-y-auto">
+          <NTag
+            v-for="path in props.filePaths"
+            :key="path"
+            size="small"
+            class="max-w-full"
+            :title="path"
+          >
+            <span class="truncate max-w-[200px]">{{ path }}</span>
+          </NTag>
+        </div>
+      </div>
+      <div
+        v-else
+        class="text-sm text-gray-500 truncate"
+        :title="props.filePath"
+      >
         文件：{{ props.filePath }}
       </div>
 
@@ -116,6 +166,17 @@ function copyLink() {
               :options="accessLimitOptions"
             />
           </NInputGroup>
+        </div>
+
+        <div>
+          <div class="text-sm font-medium mb-2">访问密码（可选）</div>
+          <NInput
+            v-model:value="password"
+            type="password"
+            show-password-on="click"
+            placeholder="留空则不设置密码"
+            clearable
+          />
         </div>
       </template>
 

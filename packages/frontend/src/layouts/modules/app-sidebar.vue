@@ -12,6 +12,10 @@ import {
   EyeOutline,
   LinkOutline,
   CloudDownloadOutline,
+  BarChartOutline,
+  PeopleOutline,
+  PieChartOutline,
+  ScanOutline,
 } from '@vicons/ionicons5';
 import { useFileListStore } from '@/stores/modules/file-list';
 
@@ -31,6 +35,10 @@ const emit = defineEmits<{
 const SYSTEM_MENUS = [
   { key: 'share-links', label: '分享链接 Share Links', icon: LinkOutline },
   { key: 'app-update', label: 'APP 版本管理', icon: CloudDownloadOutline },
+  { key: 'app-update-stats', label: '升级漏斗统计', icon: BarChartOutline },
+  { key: 'storage-stats', label: '存储统计', icon: PieChartOutline },
+  { key: 'duplicate-files', label: '重复文件检测', icon: ScanOutline },
+  { key: 'user-management', label: '用户管理', icon: PeopleOutline },
   { key: 'api-docs', label: 'API 接口文档', icon: CodeSlashOutline },
   { key: 'local-file-preview', label: '文件预览 Preview', icon: EyeOutline },
   {

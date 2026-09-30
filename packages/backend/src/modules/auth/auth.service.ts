@@ -2,6 +2,7 @@ import {
   ConflictException,
   Injectable,
   Logger,
+  NotFoundException,
   OnModuleInit,
   UnauthorizedException,
 } from '@nestjs/common';
@@ -99,6 +100,46 @@ export class AuthService implements OnModuleInit {
   async findById(id: number): Promise<UserInfo | null> {
     const user = await this.userRepo.findOne({ where: { id } });
     return user ? this.toUserInfo(user) : null;
+  }
+
+  /** 用户修改自己的密码 */
+  async changePassword(
+    userId: number,
+    oldPassword: string,
+    newPassword: string,
+  ) {
+    const user = await this.userRepo.findOne({ where: { id: userId } });
+    if (!user) {
+      throw new UnauthorizedException('用户不存在');
+    }
+    const valid = await verifyPassword(oldPassword, user.passwordHash);
+    if (!valid) {
+      throw new UnauthorizedException('当前密码错误');
+    }
+    user.passwordHash = await hashPassword(newPassword);
+    user.updatedAt = Date.now();
+    await this.userRepo.save(user);
+    this.logger.log(`用户 ${user.username} (id=${userId}) 修改密码成功`);
+    return { success: true };
+  }
+
+  /** 获取全部用户列表（不含密码哈希） */
+  async listUsers() {
+    const users = await this.userRepo.find({ order: { createdAt: 'ASC' } });
+    return users.map((u) => this.toUserInfo(u));
+  }
+
+  /** 删除用户（禁止删除自己） */
+  async deleteUser(id: number, currentUserId: number) {
+    if (id === currentUserId) {
+      throw new UnauthorizedException('不能删除当前登录用户');
+    }
+    const result = await this.userRepo.delete({ id });
+    if (result.affected === 0) {
+      throw new NotFoundException('用户不存在');
+    }
+    this.logger.log(`用户 id=${id} 已被删除`);
+    return { success: true };
   }
 
   /** 签发 JWT 并组装登录响应 */

@@ -9,6 +9,9 @@ import {
   NButton,
   NUpload,
   NProgress,
+  NDatePicker,
+  NSelect,
+  NSwitch,
   useMessage,
   type UploadFileInfo,
 } from 'naive-ui';
@@ -36,6 +39,16 @@ const form = ref({
   remark: '',
 });
 
+const enableScheduledPublish = ref(false);
+const scheduledPublishAt = ref<number | null>(null);
+const scheduledPublishMode = ref<'full' | 'gray'>('full');
+const scheduledGrayPercent = ref<number | null>(5);
+
+const scheduledGrayOptions = Array.from({ length: 99 }, (_, i) => ({
+  label: `${i + 1}%`,
+  value: i + 1,
+}));
+
 watch(
   () => props.show,
   (show) => {
@@ -48,6 +61,10 @@ watch(
         updateLog: '',
         remark: '',
       };
+      enableScheduledPublish.value = false;
+      scheduledPublishAt.value = null;
+      scheduledPublishMode.value = 'full';
+      scheduledGrayPercent.value = 5;
     }
   },
 );
@@ -101,6 +118,23 @@ async function handleSubmit() {
     message.error('仅支持 .apk 文件');
     return;
   }
+  if (enableScheduledPublish.value) {
+    if (!scheduledPublishAt.value) {
+      message.error('请选择定时发布时间');
+      return;
+    }
+    if (scheduledPublishAt.value <= Date.now()) {
+      message.error('定时发布时间必须晚于当前时间');
+      return;
+    }
+    if (
+      scheduledPublishMode.value === 'gray' &&
+      !scheduledGrayPercent.value
+    ) {
+      message.error('请选择定时灰度发布的百分比');
+      return;
+    }
+  }
 
   submitting.value = true;
   progress.value = 0;
@@ -113,6 +147,17 @@ async function handleSubmit() {
         versionCode: form.value.versionCode!,
         updateLog: form.value.updateLog.trim() || undefined,
         remark: form.value.remark.trim() || undefined,
+        scheduledPublishAt: enableScheduledPublish.value
+          ? scheduledPublishAt.value!
+          : undefined,
+        scheduledPublishMode: enableScheduledPublish.value
+          ? scheduledPublishMode.value
+          : undefined,
+        scheduledGrayPercent:
+          enableScheduledPublish.value &&
+          scheduledPublishMode.value === 'gray'
+            ? scheduledGrayPercent.value!
+            : undefined,
       },
       (e) => {
         if (e.total) progress.value = (e.loaded / e.total) * 100;
@@ -205,6 +250,43 @@ function handleClose() {
           placeholder="内部备注（可选）"
           :disabled="submitting"
         />
+      </NFormItem>
+
+      <NFormItem label="定时发布">
+        <div class="flex flex-col gap-2 w-full">
+          <div class="flex items-center gap-2">
+            <NSwitch
+              v-model:value="enableScheduledPublish"
+              :disabled="submitting"
+            />
+            <span class="text-sm text-gray-500">到点自动按预设模式发布</span>
+          </div>
+          <template v-if="enableScheduledPublish">
+            <NDatePicker
+              v-model:value="scheduledPublishAt"
+              type="datetime"
+              class="w-full"
+              placeholder="选择定时发布时间"
+              :is-date-disabled="(ts: number) => ts <= Date.now()"
+              :disabled="submitting"
+            />
+            <NSelect
+              v-model:value="scheduledPublishMode"
+              :options="[
+                { label: '全量发布', value: 'full' },
+                { label: '灰度发布', value: 'gray' },
+              ]"
+              :disabled="submitting"
+            />
+            <NSelect
+              v-if="scheduledPublishMode === 'gray'"
+              v-model:value="scheduledGrayPercent"
+              :options="scheduledGrayOptions"
+              placeholder="定时灰度百分比"
+              :disabled="submitting"
+            />
+          </template>
+        </div>
       </NFormItem>
     </NForm>
 

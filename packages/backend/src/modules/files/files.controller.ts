@@ -11,10 +11,12 @@ import {
   Query,
   Req,
   Res,
+  UploadedFile,
   UploadedFiles,
   UseGuards,
   UseInterceptors,
 } from '@nestjs/common';
+import { FileInterceptor } from '@nestjs/platform-express';
 import {
   ApiBody,
   ApiConsumes,
@@ -26,6 +28,8 @@ import {
 import type { Response, Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { FilesService } from './files.service.js';
+import { BatchDeleteDto } from './dto/batch-delete.dto.js';
+import { BatchMoveDto } from './dto/batch-move.dto.js';
 import { ListFilesQueryDto } from './dto/list-files-query.dto.js';
 import { RenameFileDto } from './dto/rename-file.dto.js';
 import { RenameCategoryDto } from './dto/rename-category.dto.js';
@@ -37,6 +41,9 @@ import { ConfigurableFilesInterceptor } from '../../common/interceptors/configur
 import { serveStaticFile } from '../../utils/file-serve.util.js';
 import { FileIndexService } from './file-index.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { AuditLogService } from '../audit-log/audit-log.service.js';
+import { getRequestMeta } from '../../utils/request-meta.util.js';
 
 @ApiTags('文件管理')
 @Controller('files')
@@ -47,6 +54,7 @@ export class FilesController {
     private readonly imageProcessor: ImageProcessorService,
     private readonly fileIndexService: FileIndexService,
     private readonly eventEmitter: EventEmitter2,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   // 单段静态路由，不会与 ':rootId/categories'、':rootId/:category' 等两段路由冲突
@@ -54,6 +62,21 @@ export class FilesController {
   @ApiOperation({ summary: '获取文件管理下发配置（默认分类等）' })
   getFileConfig() {
     return this.service.getFileConfig();
+  }
+
+  // 两段静态路由，必须声明在 ':rootId/:category' 之前避免被通配匹配
+  @Get('stats/usage')
+  @ApiOperation({ summary: '存储用量统计（按资源根/分类聚合）' })
+  async getUsageStats() {
+    return await this.service.getUsageStats();
+  }
+
+  // 单段静态路由，按内容哈希分组检测重复文件（可对存量文件惰性补算哈希）
+  @Get('duplicates')
+  @ApiOperation({ summary: '重复文件检测（按内容 SHA-256 分组）' })
+  @ApiQuery({ name: 'rootId', required: false, description: '限定资源根目录' })
+  async getDuplicates(@Query('rootId') rootId?: string) {
+    return await this.service.getDuplicateFiles(rootId);
   }
 
   @Get(':rootId/categories')
@@ -112,6 +135,160 @@ export class FilesController {
     return { message: 'ok' };
   }
 
+  @Post('batch-delete')
+  @ApiOperation({ summary: '批量删除文件' })
+  async batchDelete(
+    @Body() dto: BatchDeleteDto,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.service.batchDeleteFiles(
+      dto.rootId,
+      dto.category,
+      dto.paths,
+    );
+    // 审计：批量删除文件
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'file.delete',
+      resourceType: 'file',
+      details: {
+        rootId: dto.rootId,
+        category: dto.category,
+        paths: dto.paths,
+        batch: true,
+      },
+      ...getRequestMeta(req),
+    });
+    return result;
+  }
+
+  @Post('batch-move')
+  @ApiOperation({ summary: '批量移动文件到另一个分类' })
+  async batchMove(@Body() dto: BatchMoveDto) {
+    return await this.service.batchMoveFiles(
+      dto.rootId,
+      dto.category,
+      dto.paths,
+      dto.targetCategory,
+    );
+  }
+
+  // ==================== 大文件分片上传 ====================
+  // 注意：分片上传路由必须声明在 ':rootId/upload' 之前，否则会被通配匹配
+
+  @Post('upload/init')
+  @ApiOperation({ summary: '初始化分片上传' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['rootId', 'category', 'filename', 'size', 'chunkSize'],
+      properties: {
+        rootId: { type: 'string' },
+        category: { type: 'string' },
+        filename: { type: 'string' },
+        size: { type: 'number' },
+        chunkSize: { type: 'number' },
+      },
+    },
+  })
+  async initChunkUpload(
+    @Body()
+    body: {
+      rootId: string;
+      category: string;
+      filename: string;
+      size: number;
+      chunkSize: number;
+    },
+  ) {
+    return await this.service.initChunkUpload(
+      body.rootId,
+      body.category,
+      body.filename,
+      body.size,
+      body.chunkSize,
+    );
+  }
+
+  @Post('upload/chunk')
+  @ApiOperation({ summary: '上传分片' })
+  @ApiConsumes('multipart/form-data')
+  @UseInterceptors(FileInterceptor('chunk'))
+  async uploadChunk(
+    @Query('uploadId') uploadId: string,
+    @Query('index') index: string,
+    @UploadedFile() file: Express.Multer.File,
+  ) {
+    if (!file) {
+      throw new BadRequestException('No chunk uploaded');
+    }
+    return await this.service.saveChunk(
+      uploadId,
+      parseInt(index, 10),
+      file.buffer,
+    );
+  }
+
+  @Post('upload/complete')
+  @ApiOperation({ summary: '合并分片完成上传' })
+  @ApiBody({
+    schema: {
+      type: 'object',
+      required: ['uploadId', 'rootId', 'category', 'filename', 'size'],
+      properties: {
+        uploadId: { type: 'string' },
+        rootId: { type: 'string' },
+        category: { type: 'string' },
+        filename: { type: 'string' },
+        size: { type: 'number' },
+      },
+    },
+  })
+  async completeChunkUpload(
+    @Body()
+    body: {
+      uploadId: string;
+      rootId: string;
+      category: string;
+      filename: string;
+      size: number;
+    },
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.service.completeChunkUpload(
+      body.uploadId,
+      body.rootId,
+      body.category,
+      body.filename,
+      body.size,
+    );
+    // 审计：分片上传合并完成
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'file.upload',
+      resourceType: 'file',
+      details: {
+        rootId: body.rootId,
+        category: body.category,
+        filename: body.filename,
+        size: body.size,
+        chunked: true,
+      },
+      ...getRequestMeta(req),
+    });
+    return result;
+  }
+
+  @Post('upload/cancel')
+  @ApiOperation({ summary: '取消分片上传并清理临时文件' })
+  async cancelChunkUpload(@Body() body: { uploadId: string }) {
+    return await this.service.cancelChunkUpload(body.uploadId);
+  }
+
   @Post(':rootId/upload')
   @ApiOperation({ summary: '上传文件' })
   @ApiParam({ name: 'rootId', description: '根目录 ID' })
@@ -133,11 +310,35 @@ export class FilesController {
     @Param('rootId') rootId: string,
     @UploadedFiles() files: Express.Multer.File[],
     @Body('category') category: string,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
   ) {
     if (!files || files.length === 0) {
       throw new BadRequestException('No files uploaded');
     }
-    return await this.service.batchSaveFiles(rootId, category || '', files);
+    const result = await this.service.batchSaveFiles(
+      rootId,
+      category || '',
+      files,
+    );
+    // 审计：上传文件
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'file.upload',
+      resourceType: 'file',
+      details: {
+        rootId,
+        category: category || '',
+        count: files.length,
+        files: files.map((f) => ({
+          name: f.originalname,
+          size: f.size,
+        })),
+      },
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   @Public()
@@ -263,10 +464,21 @@ export class FilesController {
     @Param('rootId') rootId: string,
     @Param('category') category: string,
     @Param('path') path: string[] | string,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
   ) {
     const filename = Array.isArray(path) ? path.join('/') : path;
     try {
       await this.service.deleteFile(rootId, category, filename);
+      // 审计：删除文件
+      this.auditLogService.log({
+        userId: currentUser.userId,
+        username: currentUser.username,
+        action: 'file.delete',
+        resourceType: 'file',
+        details: { rootId, category, path: filename },
+        ...getRequestMeta(req),
+      });
       return { success: true };
     } catch {
       throw new NotFoundException('File not found');

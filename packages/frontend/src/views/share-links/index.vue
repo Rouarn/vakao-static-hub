@@ -9,6 +9,8 @@ import {
   NSpace,
   NTag,
   NInput,
+  NModal,
+  NSpin,
 } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { h } from 'vue';
@@ -18,9 +20,15 @@ import {
   TrashOutline,
   RefreshOutline,
   TimeOutline,
+  DocumentTextOutline,
 } from '@vicons/ionicons5';
-import { getShareLinks, revokeShareLink, getShareLinkUrl } from '@/api/share';
-import type { ShareLink } from '@vakao/shared';
+import {
+  getShareLinks,
+  revokeShareLink,
+  getShareLinkUrl,
+  getShareAccessLogs,
+} from '@/api/share';
+import type { ShareLink, ShareAccessLog } from '@vakao/shared';
 
 defineOptions({
   name: 'share-links',
@@ -38,7 +46,8 @@ const filteredLinks = computed(() => {
     (link) =>
       link.filePath.toLowerCase().includes(q) ||
       link.category.toLowerCase().includes(q) ||
-      link.token.toLowerCase().includes(q),
+      link.token.toLowerCase().includes(q) ||
+      (link.filePaths ?? []).some((p) => p.toLowerCase().includes(q)),
   );
 });
 
@@ -72,6 +81,36 @@ async function handleRevoke(token: string) {
   }
 }
 
+// 访问记录弹窗状态
+const logsModalVisible = ref(false);
+const logsLoading = ref(false);
+const accessLogs = ref<ShareAccessLog[]>([]);
+const currentLogLink = ref<ShareLink | null>(null);
+
+/** 打开访问记录弹窗并加载该分享的访问记录 */
+async function openAccessLogs(link: ShareLink) {
+  currentLogLink.value = link;
+  logsModalVisible.value = true;
+  logsLoading.value = true;
+  accessLogs.value = [];
+  try {
+    accessLogs.value = (await getShareAccessLogs(link.token)) || [];
+  } catch {
+    message.error('加载访问记录失败');
+  } finally {
+    logsLoading.value = false;
+  }
+}
+
+function closeAccessLogs() {
+  logsModalVisible.value = false;
+  currentLogLink.value = null;
+}
+
+function formatAccessTime(ts: number) {
+  return new Date(ts).toLocaleString();
+}
+
 function formatTime(ts: number | null) {
   if (!ts) return '永不过期';
   const date = new Date(ts);
@@ -93,15 +132,45 @@ function formatExpireStatus(
 
 const columns = computed<DataTableColumns<ShareLink>>(() => [
   {
+    title: '类型',
+    key: 'shareType',
+    width: 90,
+    render(row) {
+      return h(
+        NTag,
+        {
+          type: row.shareType === 'collection' ? 'info' : 'default',
+          size: 'small',
+          round: true,
+        },
+        () => (row.shareType === 'collection' ? '多文件' : '单文件'),
+      );
+    },
+  },
+  {
+    title: '密码',
+    key: 'hasPassword',
+    width: 70,
+    render(row) {
+      return row.hasPassword
+        ? h(NTag, { type: 'warning', size: 'small', round: true }, () => '有')
+        : h('span', { class: 'text-xs text-gray-400' }, '无');
+    },
+  },
+  {
     title: '文件',
     key: 'filePath',
     ellipsis: { tooltip: true },
     render(row) {
+      const displayPath =
+        row.shareType === 'collection' && row.filePaths?.length
+          ? `${row.filePaths[0]} 等 ${row.filePaths.length} 个文件`
+          : row.filePath;
       return h('div', { class: 'flex flex-col' }, [
         h(
           'span',
           { class: 'text-sm font-medium truncate max-w-[400px]' },
-          row.filePath,
+          displayPath,
         ),
         h('span', { class: 'text-xs text-gray-400' }, row.category),
       ]);
@@ -161,7 +230,7 @@ const columns = computed<DataTableColumns<ShareLink>>(() => [
   {
     title: '操作',
     key: 'actions',
-    width: 240,
+    width: 300,
     fixed: 'right',
     render(row) {
       return h(NSpace, { size: 'small' }, () => [
@@ -176,6 +245,19 @@ const columns = computed<DataTableColumns<ShareLink>>(() => [
           {
             icon: () => h(NIcon, null, () => h(CopyOutline)),
             default: () => '复制',
+          },
+        ),
+        h(
+          NButton,
+          {
+            size: 'small',
+            quaternary: true,
+            type: 'info',
+            onClick: () => openAccessLogs(row),
+          },
+          {
+            icon: () => h(NIcon, null, () => h(DocumentTextOutline)),
+            default: () => '访问记录',
           },
         ),
         h(
@@ -202,6 +284,34 @@ const columns = computed<DataTableColumns<ShareLink>>(() => [
     },
   },
 ]);
+
+// 访问记录弹窗的表格列定义
+const logColumns: DataTableColumns<ShareAccessLog> = [
+  {
+    title: '访问时间',
+    key: 'accessedAt',
+    width: 180,
+    render(row) {
+      return formatAccessTime(row.accessedAt);
+    },
+  },
+  {
+    title: 'IP',
+    key: 'ip',
+    width: 140,
+    render(row) {
+      return row.ip || '-';
+    },
+  },
+  {
+    title: 'User-Agent',
+    key: 'userAgent',
+    ellipsis: { tooltip: true },
+    render(row) {
+      return row.userAgent || '-';
+    },
+  },
+];
 
 onMounted(() => {
   loadShareLinks();
@@ -259,5 +369,44 @@ onMounted(() => {
       :scroll-x="900"
       class="rounded-xl shadow-sm"
     />
+
+    <NModal
+      :show="logsModalVisible"
+      preset="card"
+      title="访问记录"
+      :mask-closable="true"
+      style="max-width: 720px"
+      @update:show="
+        (value) => {
+          if (!value) closeAccessLogs();
+        }
+      "
+    >
+      <div v-if="currentLogLink" class="text-xs text-gray-500 mb-3">
+        {{ currentLogLink.filePath }}（{{ currentLogLink.token }}）
+      </div>
+      <NSpin :show="logsLoading">
+        <div
+          v-if="!logsLoading && accessLogs.length === 0"
+          class="text-center py-10 text-gray-400"
+        >
+          暂无访问记录
+        </div>
+        <NDataTable
+          v-else
+          :columns="logColumns"
+          :data="accessLogs"
+          :bordered="false"
+          :single-line="false"
+          size="small"
+          max-height="400"
+        />
+      </NSpin>
+      <template #footer>
+        <div class="flex justify-center">
+          <NButton @click="closeAccessLogs">关闭</NButton>
+        </div>
+      </template>
+    </NModal>
   </main>
 </template>

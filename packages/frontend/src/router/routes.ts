@@ -13,6 +13,12 @@ export const builtinRoutes: RouteRecordRaw[] = [
     component: () => import('@/views/file-preview/index.vue'),
     meta: { requiresAuth: false },
   },
+  {
+    path: '/share/:token',
+    name: 'share-access',
+    component: () => import('@/views/share-access/index.vue'),
+    meta: { requiresAuth: false },
+  },
 ];
 
 export const builtinChildren: RouteRecordRaw[] = [
@@ -53,9 +59,33 @@ export const builtinChildren: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
+    path: 'app-update-stats',
+    name: 'app-update-stats',
+    component: () => import('@/views/app-update/stats.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
     path: 'register',
     name: 'register',
     component: () => import('@/views/login/register.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: 'storage-stats',
+    name: 'storage-stats',
+    component: () => import('@/views/storage-stats/index.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: 'duplicate-files',
+    name: 'duplicate-files',
+    component: () => import('@/views/duplicate-files/index.vue'),
+    meta: { requiresAuth: true },
+  },
+  {
+    path: 'user-management',
+    name: 'user-management',
+    component: () => import('@/views/user-management/index.vue'),
     meta: { requiresAuth: true },
   },
   {

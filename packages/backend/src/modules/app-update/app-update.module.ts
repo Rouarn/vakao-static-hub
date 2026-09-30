@@ -7,6 +7,7 @@ import { AppUpdateAdminController } from './app-update-admin.controller.js';
 import { AppUpdateAppController } from './app-update-app.controller.js';
 import { AppUpdateClientController } from './app-update-client.controller.js';
 import { AppUpdateService } from './app-update.service.js';
+import { AppUpdateStatsService } from './app-update-stats.service.js';
 
 @Module({
   imports: [
@@ -21,7 +22,7 @@ import { AppUpdateService } from './app-update.service.js';
     AppUpdateAppController,
     AppUpdateAdminController,
   ],
-  providers: [AppUpdateService],
+  providers: [AppUpdateService, AppUpdateStatsService],
   exports: [AppUpdateService],
 })
 export class AppUpdateModule {}

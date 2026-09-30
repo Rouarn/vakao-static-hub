@@ -5,6 +5,8 @@
 
 import { ApiProperty, ApiPropertyOptional } from '@nestjs/swagger';
 import {
+  IsArray,
+  IsIn,
   IsInt,
   IsOptional,
   IsPositive,
@@ -28,10 +30,23 @@ export class CreateShareLinkDto {
   @IsString()
   category!: string;
 
-  /** 文件相对路径 */
+  /** 文件相对路径（单文件分享时使用） */
   @ApiProperty({ description: '文件相对路径' })
   @IsString()
   filePath!: string;
+
+  /** 分享类型：file 单文件 / collection 多文件 */
+  @ApiPropertyOptional({ description: '分享类型，默认 file' })
+  @IsOptional()
+  @IsIn(['file', 'collection'])
+  shareType?: 'file' | 'collection';
+
+  /** 多文件相对路径列表，shareType='collection' 时必填 */
+  @ApiPropertyOptional({ description: '多文件相对路径列表' })
+  @IsOptional()
+  @IsArray()
+  @IsString({ each: true })
+  filePaths?: string[];
 
   /** 有效期（毫秒），不传则永不过期 */
   @ApiPropertyOptional({ description: '有效期（毫秒），不传则永不过期' })
@@ -47,4 +62,10 @@ export class CreateShareLinkDto {
   @Min(1)
   @Max(1000000)
   maxAccesses?: number;
+
+  /** 访问密码，不传则不设置密码 */
+  @ApiPropertyOptional({ description: '访问密码，不传则不设置密码' })
+  @IsOptional()
+  @IsString()
+  password?: string;
 }

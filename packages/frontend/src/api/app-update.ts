@@ -57,6 +57,9 @@ export function createVersion(
     versionCode: number;
     updateLog?: string;
     remark?: string;
+    scheduledPublishAt?: number;
+    scheduledPublishMode?: 'full' | 'gray';
+    scheduledGrayPercent?: number;
   },
   onUploadProgress?: (e: AxiosProgressEvent) => void,
 ) {
@@ -67,6 +70,15 @@ export function createVersion(
   fd.append('versionCode', String(payload.versionCode));
   if (payload.updateLog) fd.append('updateLog', payload.updateLog);
   if (payload.remark) fd.append('remark', payload.remark);
+  if (payload.scheduledPublishAt !== undefined) {
+    fd.append('scheduledPublishAt', String(payload.scheduledPublishAt));
+  }
+  if (payload.scheduledPublishMode) {
+    fd.append('scheduledPublishMode', payload.scheduledPublishMode);
+  }
+  if (payload.scheduledGrayPercent !== undefined) {
+    fd.append('scheduledGrayPercent', String(payload.scheduledGrayPercent));
+  }
   return http
     .post<ApiResponse<AppVersion>>('/app-updates/versions', fd, {
       timeout: 0,
@@ -77,14 +89,31 @@ export function createVersion(
 
 export function updateVersion(
   id: number,
-  payload: { versionName?: string; updateLog?: string; remark?: string },
+  payload: {
+    versionName?: string;
+    updateLog?: string;
+    remark?: string;
+    scheduledPublishAt?: number | null;
+    scheduledPublishMode?: 'full' | 'gray';
+    scheduledGrayPercent?: number;
+  },
 ) {
   return patch<AppVersion>(`/app-updates/versions/${id}`, payload);
 }
 
+export interface GrayIncrementStep {
+  hours: number;
+  percent: number;
+}
+
 export function publishVersion(
   id: number,
-  payload: { mode: 'full' | 'gray'; grayPercent?: number },
+  payload: {
+    mode: 'full' | 'gray';
+    grayPercent?: number;
+    grayAutoIncrement?: boolean;
+    grayIncrementSchedule?: GrayIncrementStep[];
+  },
 ) {
   return post<AppVersion>(`/app-updates/versions/${id}/publish`, payload);
 }
@@ -103,6 +132,50 @@ export function offlineVersion(id: number) {
   return post<AppVersion>(`/app-updates/versions/${id}/offline`);
 }
 
+export interface RollbackResult {
+  success: true;
+  rolledBack: { id: number; versionCode: number };
+  restored: { id: number; versionCode: number; versionName: string };
+}
+
+export function rollbackVersion(id: number) {
+  return post<RollbackResult>(`/app-updates/versions/${id}/rollback`);
+}
+
 export function removeVersion(id: number) {
   return del<{ success: true }>(`/app-updates/versions/${id}`);
+}
+
+export interface FunnelStatItem {
+  toVersionCode: number;
+  versionName: string;
+  checkNoUpdate: number;
+  promptShow: number;
+  downloadStart: number;
+  downloadSuccess: number;
+  downloadFail: number;
+  verifyFail: number;
+  installSuccess: number;
+  installFail: number;
+  newVersionLaunch: number;
+  downloadRate: string;
+  installRate: string;
+  overallRate: string;
+}
+
+export interface FunnelStatsResult {
+  appKey: string;
+  items: FunnelStatItem[];
+  checkNoUpdateTotal: number;
+}
+
+/** 升级漏斗统计（按版本聚合各事件转化率） */
+export function getFunnelStats(params: {
+  appKey: string;
+  startTime?: number;
+  endTime?: number;
+}) {
+  return get<FunnelStatsResult>('/app-updates/versions/stats/funnel', {
+    params,
+  });
 }

@@ -10,6 +10,7 @@ import { NModal, useMessage } from 'naive-ui';
 import { ref, onMounted } from 'vue';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/modules/auth';
+import { logout } from '@/api/auth';
 
 const store = useFileListStore();
 const authStore = useAuthStore();
@@ -56,7 +57,12 @@ async function handleUploadSuccess(category: string) {
   await store.loadFiles();
 }
 
-function confirmLogout() {
+async function confirmLogout() {
+  try {
+    await logout();
+  } catch {
+    // 即使后端调用失败也继续清除本地状态
+  }
   authStore.clearAuth();
   showLogoutModal.value = false;
   router.replace({ name: 'login' });

@@ -2,6 +2,7 @@ import { NestFactory } from '@nestjs/core';
 import { AppModule } from './app.module.js';
 import { json, urlencoded } from 'express';
 import * as express from 'express';
+import helmet from 'helmet';
 import { mkdir, access } from 'node:fs/promises';
 import { join } from 'node:path';
 import { ResponseInterceptor } from './common/response.interceptor.js';
@@ -42,6 +43,13 @@ async function bootstrap() {
     methods: ['GET', 'HEAD', 'PUT', 'PATCH', 'POST', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
   });
+
+  app.use(
+    helmet({
+      contentSecurityPolicy: false, // SPA 内联脚本与 Swagger 需要，先关闭 CSP
+      crossOriginEmbedderPolicy: false,
+    }),
+  );
 
   app.use(
     json({

@@ -44,4 +44,13 @@ export class FileEntryEntity {
   /** 文件最后修改时间（毫秒时间戳） */
   @Column({ type: 'integer' })
   mtimeMs!: number;
+
+  /**
+   * 文件内容 SHA-256 哈希（用于重复文件检测）
+   * 上传时直接计算；存量文件由重复检测接口按需惰性补算
+   * （仅对文件大小存在重复的记录计算，避免全量扫描的 IO 开销）
+   */
+  @Index()
+  @Column({ type: 'varchar', length: 64, nullable: true })
+  contentHash!: string | null;
 }

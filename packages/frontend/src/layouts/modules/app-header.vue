@@ -1,6 +1,16 @@
 <script setup lang="ts">
-import { computed, h } from 'vue';
-import { NButton, NIcon, NDropdown, type DropdownOption } from 'naive-ui';
+import { computed, h, ref } from 'vue';
+import {
+  NButton,
+  NIcon,
+  NDropdown,
+  NModal,
+  NForm,
+  NFormItem,
+  NInput,
+  useMessage,
+  type DropdownOption,
+} from 'naive-ui';
 import {
   MenuOutline,
   CloudOutline,
@@ -12,16 +22,20 @@ import {
   MoonOutline,
   SunnyOutline,
   EllipsisHorizontalOutline,
+  KeyOutline,
+  PeopleOutline,
 } from '@vicons/ionicons5';
 import { useDark, useToggle } from '@vueuse/core';
 import { useRouter } from 'vue-router';
 import { useAuthStore } from '@/stores/modules/auth';
+import { changePassword } from '@/api/auth';
 
 const isDark = useDark();
 const toggleDark = useToggle(isDark);
 
 const authStore = useAuthStore();
 const router = useRouter();
+const message = useMessage();
 
 const emit = defineEmits<{
   (e: 'toggleSidebar'): void;
@@ -29,6 +43,46 @@ const emit = defineEmits<{
   (e: 'openUploadModal'): void;
   (e: 'logout'): void;
 }>();
+
+const showPasswordModal = ref(false);
+const oldPassword = ref('');
+const newPassword = ref('');
+const confirmPassword = ref('');
+const passwordLoading = ref(false);
+
+function resetPasswordForm() {
+  oldPassword.value = '';
+  newPassword.value = '';
+  confirmPassword.value = '';
+}
+
+async function submitChangePassword() {
+  if (!oldPassword.value || !newPassword.value) {
+    message.error('请输入当前密码和新密码');
+    return;
+  }
+  if (newPassword.value.length < 6 || newPassword.value.length > 64) {
+    message.error('新密码长度需在 6~64 个字符之间');
+    return;
+  }
+  if (newPassword.value !== confirmPassword.value) {
+    message.error('两次输入的新密码不一致');
+    return;
+  }
+  passwordLoading.value = true;
+  try {
+    await changePassword(oldPassword.value, newPassword.value);
+    message.success('密码修改成功');
+    showPasswordModal.value = false;
+    resetPasswordForm();
+  } catch (error: any) {
+    message.error(
+      error.response?.data?.message || error.message || '密码修改失败',
+    );
+  } finally {
+    passwordLoading.value = false;
+  }
+}
 
 const mobileMenuOptions = computed<DropdownOption[]>(() => [
   {
@@ -63,6 +117,16 @@ const mobileMenuOptions = computed<DropdownOption[]>(() => [
     label: '创建账号',
     icon: () => h(NIcon, null, { default: () => h(PersonAddOutline) }),
   },
+  {
+    key: 'user-management',
+    label: '用户管理',
+    icon: () => h(NIcon, null, { default: () => h(PeopleOutline) }),
+  },
+  {
+    key: 'change-password',
+    label: '修改密码',
+    icon: () => h(NIcon, null, { default: () => h(KeyOutline) }),
+  },
   { type: 'divider', key: 'divider-actions' },
   {
     key: 'logout',
@@ -81,18 +145,30 @@ function handleMobileMenuSelect(key: string) {
       toggleDark();
       break;
     case 'create-account':
+    case 'user-management':
+    case 'change-password':
     case 'logout':
       handleUserMenuSelect(key);
       break;
   }
 }
 
-/** 桌面端用户菜单：创建账号 / 退出登录 */
+/** 桌面端用户菜单：创建账号 / 用户管理 / 修改密码 / 退出登录 */
 const userMenuOptions: DropdownOption[] = [
   {
     key: 'create-account',
     label: '创建账号',
     icon: () => h(NIcon, null, { default: () => h(PersonAddOutline) }),
+  },
+  {
+    key: 'user-management',
+    label: '用户管理',
+    icon: () => h(NIcon, null, { default: () => h(PeopleOutline) }),
+  },
+  {
+    key: 'change-password',
+    label: '修改密码',
+    icon: () => h(NIcon, null, { default: () => h(KeyOutline) }),
   },
   {
     key: 'logout',
@@ -105,6 +181,11 @@ const userMenuOptions: DropdownOption[] = [
 function handleUserMenuSelect(key: string) {
   if (key === 'create-account') {
     void router.push({ name: 'register' });
+  } else if (key === 'user-management') {
+    void router.push({ name: 'user-management' });
+  } else if (key === 'change-password') {
+    resetPasswordForm();
+    showPasswordModal.value = true;
   } else if (key === 'logout') {
     emit('logout');
   }
@@ -212,5 +293,50 @@ function handleUserMenuSelect(key: string) {
         </NButton>
       </NDropdown>
     </div>
+
+    <NModal
+      v-model:show="showPasswordModal"
+      preset="card"
+      title="修改密码"
+      class="max-w-md w-full"
+    >
+      <NForm size="large">
+        <NFormItem label="当前密码">
+          <NInput
+            v-model:value="oldPassword"
+            type="password"
+            placeholder="请输入当前密码"
+            show-password-on="mousedown"
+          />
+        </NFormItem>
+        <NFormItem label="新密码">
+          <NInput
+            v-model:value="newPassword"
+            type="password"
+            placeholder="6~64 个字符"
+            show-password-on="mousedown"
+          />
+        </NFormItem>
+        <NFormItem label="确认新密码">
+          <NInput
+            v-model:value="confirmPassword"
+            type="password"
+            placeholder="请再次输入新密码"
+            show-password-on="mousedown"
+            @keyup.enter="submitChangePassword"
+          />
+        </NFormItem>
+        <div class="flex justify-end gap-2">
+          <NButton @click="showPasswordModal = false">取消</NButton>
+          <NButton
+            type="primary"
+            :loading="passwordLoading"
+            @click="submitChangePassword"
+          >
+            确认修改
+          </NButton>
+        </div>
+      </NForm>
+    </NModal>
   </header>
 </template>

@@ -32,6 +32,14 @@ export class ShareLinkEntity {
   @Column({ type: 'varchar', length: 1024 })
   filePath!: string;
 
+  /** 分享类型：file 单文件 / collection 多文件 */
+  @Column({ type: 'varchar', length: 32, default: 'file' })
+  shareType!: 'file' | 'collection';
+
+  /** 多文件相对路径 JSON 字符串数组，仅 shareType='collection' 时使用 */
+  @Column({ type: 'text', nullable: true })
+  filePaths!: string | null;
+
   /** 过期时间戳（毫秒），null 表示永不过期 */
   @Column({ type: 'integer', nullable: true })
   expiresAt!: number | null;
@@ -39,6 +47,10 @@ export class ShareLinkEntity {
   /** 最大访问次数，null 表示不限制 */
   @Column({ type: 'integer', nullable: true })
   maxAccesses!: number | null;
+
+  /** 访问密码哈希，null 表示未设置密码 */
+  @Column({ type: 'varchar', length: 255, nullable: true })
+  passwordHash!: string | null;
 
   /** 当前已访问次数 */
   @Column({ type: 'integer', default: 0 })

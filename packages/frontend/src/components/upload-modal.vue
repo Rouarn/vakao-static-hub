@@ -6,7 +6,12 @@ import {
   CloudUploadOutline,
   DocumentOutline,
 } from '@vicons/ionicons5';
-import { uploadFile } from '@/api/files';
+import {
+  uploadFile,
+  initChunkUpload,
+  uploadChunk,
+  completeChunkUpload,
+} from '@/api/files';
 import { DEFAULT_CATEGORY } from '@/stores/modules/file-list';
 import type { AxiosError, AxiosProgressEvent } from 'axios';
 
@@ -241,6 +246,56 @@ function getDisplayPath(item: UploadItem) {
   return `${finalCategory}${separator}${item.file.name}`;
 }
 
+const CHUNK_SIZE = 5 * 1024 * 1024; // 5MB
+const CHUNK_THRESHOLD = 10 * 1024 * 1024; // 10MB 以上走分片
+
+async function uploadSingleFile(
+  item: UploadItem,
+  rootId: string,
+  category: string,
+  onProgress: (percent: number) => void,
+): Promise<void> {
+  const file = item.file;
+
+  if (file.size <= CHUNK_THRESHOLD) {
+    // 小文件走普通上传
+    await uploadFile(rootId, category, file, {
+      onUploadProgress: (e: AxiosProgressEvent) => {
+        if (!e.total) return;
+        onProgress((e.loaded / e.total) * 100);
+      },
+    });
+    return;
+  }
+
+  // 大文件走分片上传
+  const initRes = await initChunkUpload(
+    rootId,
+    category,
+    file.name,
+    file.size,
+    CHUNK_SIZE,
+  );
+  const { uploadId, uploadedChunks } = initRes;
+  const totalChunks = Math.ceil(file.size / CHUNK_SIZE);
+  const uploadedSet = new Set(uploadedChunks);
+
+  for (let i = 0; i < totalChunks; i++) {
+    if (uploadedSet.has(i)) {
+      // 断点续传：跳过已上传分片
+      onProgress(((i + 1) / totalChunks) * 100);
+      continue;
+    }
+    const start = i * CHUNK_SIZE;
+    const end = Math.min(start + CHUNK_SIZE, file.size);
+    const chunk = file.slice(start, end);
+    await uploadChunk(uploadId, i, chunk);
+    onProgress(((i + 1) / totalChunks) * 100);
+  }
+
+  await completeChunkUpload(uploadId, rootId, category, file.name, file.size);
+}
+
 async function handleUpload() {
   if (!uploadItems.value.length) {
     emit('error', '请选择文件');
@@ -269,15 +324,11 @@ async function handleUpload() {
           : `${baseCategory}/${item.relativePath}`;
       }
 
-      return uploadFile(props.rootId, finalCategory, item.file, {
-        onUploadProgress: (e: AxiosProgressEvent) => {
-          if (!e.total) return;
-          const percent = (e.loaded / e.total) * 100;
-          const currentItem = uploadItems.value[index];
-          if (currentItem) {
-            currentItem.progress = percent;
-          }
-        },
+      return uploadSingleFile(item, props.rootId, finalCategory, (percent) => {
+        const currentItem = uploadItems.value[index];
+        if (currentItem) {
+          currentItem.progress = percent;
+        }
       })
         .then(() => {
           successCount++;

@@ -15,6 +15,8 @@ import { PhotoModule } from './modules/photo/photo.module.js';
 import { PlaceholderModule } from './modules/placeholder/placeholder.module.js';
 import { HitokotoModule } from './modules/hitokoto/hitokoto.module.js';
 import { AppUpdateModule } from './modules/app-update/app-update.module.js';
+import { AuditLogModule } from './modules/audit-log/audit-log.module.js';
+import { MetricsModule } from './modules/metrics/metrics.module.js';
 
 @Module({
   imports: [
@@ -32,6 +34,8 @@ import { AppUpdateModule } from './modules/app-update/app-update.module.js';
     PlaceholderModule,
     HitokotoModule,
     AppUpdateModule,
+    AuditLogModule,
+    MetricsModule,
   ],
   controllers: [AppController],
   providers: [AppService, { provide: APP_GUARD, useClass: ThrottlerGuard }],

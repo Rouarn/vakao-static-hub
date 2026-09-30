@@ -80,6 +80,26 @@ export class AppVersionEntity {
   @Column({ type: 'integer', default: 0 })
   grayPercent!: number;
 
+  /** 灰度自动递增开关 0/1，status=1 时生效 */
+  @Column({ type: 'integer', default: 0 })
+  grayAutoIncrement!: number;
+
+  /** 灰度递增时间表 JSON：[{ "hours": 24, "percent": 30 }, ...]，percent 达 100 自动转全量 */
+  @Column({ type: 'text', nullable: true })
+  grayIncrementSchedule!: string | null;
+
+  /** 定时发布时间戳（毫秒），仅草稿生效，到点自动发布 */
+  @Column({ type: 'integer', nullable: true })
+  scheduledPublishAt!: number | null;
+
+  /** 定时发布模式：full 全量 / gray 灰度 */
+  @Column({ type: 'varchar', length: 8, default: 'full' })
+  scheduledPublishMode!: string;
+
+  /** 定时灰度发布的灰度百分比 1~99 */
+  @Column({ type: 'integer', default: 0 })
+  scheduledGrayPercent!: number;
+
   /** 状态：0 草稿 / 1 灰度 / 2 全量 / 3 已下架 */
   @Column({ type: 'integer', default: 0 })
   status!: number;

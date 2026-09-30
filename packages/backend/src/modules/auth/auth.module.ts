@@ -12,6 +12,7 @@ import { UserEntity } from '../../infra/database/entities/user.entity.js';
 import { AuthController } from './auth.controller.js';
 import { AuthService } from './auth.service.js';
 import { JwtStrategy } from './jwt.strategy.js';
+import { TokenBlacklistService } from './token-blacklist.service.js';
 
 /**
  * 认证模块类
@@ -34,7 +35,7 @@ import { JwtStrategy } from './jwt.strategy.js';
     }),
   ],
   controllers: [AuthController],
-  providers: [AuthService, JwtStrategy],
-  exports: [AuthService],
+  providers: [AuthService, JwtStrategy, TokenBlacklistService],
+  exports: [AuthService, TokenBlacklistService],
 })
 export class AuthModule {}
