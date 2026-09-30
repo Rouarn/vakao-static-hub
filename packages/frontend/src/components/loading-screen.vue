@@ -6,7 +6,7 @@ const visible = ref(true);
 onMounted(() => {
   setTimeout(() => {
     visible.value = false;
-  }, 2000);
+  }, 500);
 });
 </script>
 

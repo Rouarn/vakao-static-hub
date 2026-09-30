@@ -13,15 +13,22 @@
 ## 核心特性
 
 - **多根目录管理**：动态增删资源根目录，配置持久化到 `resource-roots.json`，支持服务器目录浏览；系统启动时会幂等注册内置 `software-update` 根目录
-- **文件管理**：上传、删除、重命名、分页浏览、关键词搜索、多字段排序（名称 / 大小 / 修改时间）
-- **文件索引**：SQLite (better-sqlite3) + TypeORM，启动时全量扫描，每 5 分钟自动同步，根目录变更时事件驱动刷新
+- **文件管理**：上传、删除、重命名、分页浏览、关键词搜索、多字段排序（名称 / 大小 / 修改时间）；支持批量删除、批量移动分类
+- **大文件分片上传**：5MB 分片 + 断点续传，上传中断后可从断点继续，合并时校验 SHA-256
+- **重复文件检测**：`file_entries` 记录内容 SHA-256，按哈希分组找出重复副本，前端可视化对比与清理
+- **存储用量统计**：按根目录 / 分类聚合占用空间与文件数，前端进度条可视化
+- **文件索引**：SQLite (sql.js) + TypeORM，启动时全量扫描，每 5 分钟自动同步，根目录变更时事件驱动刷新
 - **图片处理**：基于 Sharp，支持缩放、格式转换（webp/jpeg/png）、质量调节，磁盘缓存 `{FILE_ROOT}/.cache/thumbnails`
 - **随机图片服务**：单入口查询参数路由（根目录 / 分类 / 尺寸多维度组合），扫描文件系统并内置洗牌缓存
 - **占位图生成**：SVG 占位图动态生成，支持尺寸、颜色、文字、字体、字重自定义，带 ETag 协商缓存
 - **一言代理**：反向代理 `hitokoto` 服务，支持任意方法转发并记录请求日志
-- **文件分享链接**：生成带 token 的公开外链，可设置有效期与最大访问次数，访问计数，支持撤销
-- **APP 在线更新中心**：多应用（appKey）独立版本管理，APK 上传自动计算 SHA-256，草稿/灰度/全量/下架四态，灰度按设备哈希稳定分桶，强更开关与最低兼容版本，APK 下载支持 HTTP Range 断点续传，升级事件上报
+- **文件分享链接**：单文件 / 多文件聚合分享，可设有效期、最大访问次数与访问密码（scrypt 哈希 + HMAC 短期访问令牌），访问记录持久化（IP / UA / 时间），支持撤销
+- **APP 在线更新中心**：多应用（appKey）独立版本管理，APK 上传自动计算 SHA-256，草稿/灰度/全量/下架四态，灰度按设备哈希稳定分桶，灰度自动递增与定时发布，一键回滚到上一个全量版本，强更开关与最低兼容版本，APK 下载支持 HTTP Range 断点续传，升级事件上报 + 漏斗统计看板
+- **操作审计日志**：关键操作（登录、上传、删除、发布、分享等）持久化到 `audit_logs` 表，支持按用户 / 操作 / 资源类型筛选查询
+- **监控指标**：`GET /static/metrics` 提供 QPS、内存占用、存储总量、活跃分享数、应用 / 版本数、24h 升级事件量
+- **安全加固**：Helmet 安全响应头、全局速率限制、JWT 登出吊销（内存黑名单）、修改密码、用户管理（列表 / 删除，禁止删除自己）
 - **统一鉴权**：users 表 + 密码哈希，JWT（Bearer Token），注册需登录（管理员创建账号）；`AUTH_USER/AUTH_PASS` 仅用于首次启动播种默认管理员
+- **定时清理**：每日凌晨自动清理孤儿缩略图缓存与过期 / 超限分享链接记录
 - **API 文档**：Swagger UI `/docs`
 - **统一响应格式**：全局拦截器包装 `{ code, message, data }`
 - **SPA 支持**：生产模式下自动挂载前端静态资源并提供 fallback
@@ -35,8 +42,9 @@
 | 运行时   | Node.js >= 22.18.0（.nvmrc 推荐 24）                                      |
 | 框架     | NestJS 12 + Express 5                                                     |
 | 语言     | TypeScript 6.x                                                            |
-| 数据库   | SQLite (better-sqlite3 + TypeORM)                                         |
+| 数据库   | SQLite (sql.js + TypeORM)                                                 |
 | 认证     | @nestjs/jwt + passport-jwt                                                |
+| 安全     | helmet + @nestjs/throttler                                                |
 | 文件上传 | multer 2                                                                  |
 | 校验     | class-validator + class-transformer                                       |
 | 图片处理 | Sharp                                                                     |
@@ -53,7 +61,7 @@
 ## 快速开始
 
 ```bash
-# 1. 安装依赖（better-sqlite3 / sharp 等原生模块已在 pnpm-workspace.yaml 中放行，无需 approve-builds）
+# 1. 安装依赖（sharp 等原生模块已在 pnpm-workspace.yaml 中放行，无需 approve-builds）
 pnpm install
 
 # 2. 启动后端（开发模式，热重载）
@@ -158,17 +166,19 @@ vakao-static-hub/
 │   │       ├── infra/
 │   │       │   ├── database/
 │   │       │   │   ├── database.module.ts
-│   │       │   │   └── entities/    # file-entry / user / share-link / app-version / app-upgrade-event
+│   │       │   │   └── entities/    # file-entry / user / share-link / share-access-log / app-version / app-upgrade-event / audit-log
 │   │       │   └── resource-roots/  # resource-roots.json 多根目录 CRUD + 事件广播
 │   │       ├── modules/
-│   │       │   ├── auth/            # 登录 / 注册 / profile，JWT 策略，@Public 白名单装饰器
-│   │       │   ├── files/           # 文件 CRUD / 目录浏览 / 索引同步 / Sharp 图片处理
+│   │       │   ├── auth/            # 登录 / 注册 / 改密 / 登出 / 用户管理，JWT 策略 + Token 黑名单，@Public 白名单装饰器
+│   │       │   ├── files/           # 文件 CRUD / 批量操作 / 分片上传 / 重复检测 / 用量统计 / 索引同步 / Sharp 图片处理
 │   │       │   ├── roots/           # 资源根目录管理 + 服务器目录浏览
 │   │       │   ├── photo/           # 随机图片（查询参数路由 + 洗牌缓存）
 │   │       │   ├── placeholder/     # SVG 占位图生成
 │   │       │   ├── hitokoto/        # 一言反向代理
-│   │       │   ├── share/           # 分享链接（token / 有效期 / 访问次数）
-│   │       │   └── app-update/      # APP 在线更新（应用管理、版本管理、客户端检查/下载/上报）
+│   │       │   ├── share/           # 分享链接（单文件/聚合、访问密码、访问记录、有效期/次数）
+│   │       │   ├── app-update/      # APP 在线更新（应用/版本管理、回滚、灰度递增、定时发布、漏斗统计、客户端检查/下载/上报）
+│   │       │   ├── audit-log/       # 操作审计日志（异步写入 + 查询接口）
+│   │       │   └── metrics/         # 监控指标（QPS / 内存 / 存储 / 分享 / 升级事件）
 │   │       ├── utils/{file-serve,size}.util.ts
 │   │       └── types/express.d.ts
 │   └── frontend/                    # @vakao/frontend：Vue 3 + Vite
@@ -193,11 +203,15 @@ vakao-static-hub/
 
 ### 认证
 
-| 方法 | 路径                    | 说明                                 | 认证 |
-| ---- | ----------------------- | ------------------------------------ | ---- |
-| POST | `/static/auth/login`    | 登录，返回 JWT                       | 否   |
-| POST | `/static/auth/register` | 创建新用户（需登录后调用，返回 JWT） | 是   |
-| GET  | `/static/auth/profile`  | 获取当前登录用户信息                 | 是   |
+| 方法   | 路径                     | 说明                                 | 认证 |
+| ------ | ------------------------ | ------------------------------------ | ---- |
+| POST   | `/static/auth/login`     | 登录，返回 JWT                       | 否   |
+| POST   | `/static/auth/register`  | 创建新用户（需登录后调用，返回 JWT） | 是   |
+| GET    | `/static/auth/profile`   | 获取当前登录用户信息                 | 是   |
+| POST   | `/static/auth/logout`    | 登出（当前 Token 立即加入黑名单）    | 是   |
+| PATCH  | `/static/auth/password`  | 修改当前用户密码                     | 是   |
+| GET    | `/static/auth/users`     | 用户列表（不含密码哈希）             | 是   |
+| DELETE | `/static/auth/users/:id` | 删除用户（禁止删除自己）             | 是   |
 
 ### 资源根目录
 
@@ -211,15 +225,25 @@ vakao-static-hub/
 
 ### 文件管理
 
-| 方法   | 路径                                    | 说明                                         | 认证       |
-| ------ | --------------------------------------- | -------------------------------------------- | ---------- |
-| GET    | `/static/files/:rootId/categories`      | 获取分类列表                                 | 是         |
-| GET    | `/static/files/:rootId/:category`       | 分页查询文件列表                             | 是         |
-| POST   | `/static/files/sync`                    | 强制同步文件索引（重新扫描磁盘并刷新数据库） | 是         |
-| POST   | `/static/files/:rootId/upload`          | 上传文件 (multipart)                         | 是         |
-| GET    | `/static/files/:rootId/:category/*path` | 下载/预览文件                                | 否（公开） |
-| PATCH  | `/static/files/:rootId/:category/*path` | 重命名文件（body: `{ newName }`）            | 是         |
-| DELETE | `/static/files/:rootId/:category/*path` | 删除文件                                     | 是         |
+| 方法   | 路径                                          | 说明                                                | 认证       |
+| ------ | --------------------------------------------- | --------------------------------------------------- | ---------- |
+| GET    | `/static/files/config`                        | 获取文件管理配置（defaultCategory 等）              | 是         |
+| GET    | `/static/files/stats/usage`                   | 存储用量统计（按根目录/分类聚合）                   | 是         |
+| GET    | `/static/files/duplicates`                    | 重复文件检测（按 contentHash 分组）                 | 是         |
+| POST   | `/static/files/sync`                          | 强制同步文件索引（重新扫描磁盘并刷新数据库）        | 是         |
+| POST   | `/static/files/batch-delete`                  | 批量删除文件（body: `{ rootId, category, paths }`） | 是         |
+| POST   | `/static/files/batch-move`                    | 批量移动文件到另一个分类                            | 是         |
+| POST   | `/static/files/upload/init`                   | 分片上传初始化，返回 uploadId                       | 是         |
+| POST   | `/static/files/upload/chunk?uploadId=&index=` | 上传单个分片                                        | 是         |
+| POST   | `/static/files/upload/complete?uploadId=`     | 合并分片并校验 SHA-256                              | 是         |
+| POST   | `/static/files/upload/cancel?uploadId=`       | 取消分片上传并清理临时文件                          | 是         |
+| GET    | `/static/files/:rootId/categories`            | 获取分类列表                                        | 是         |
+| PATCH  | `/static/files/:rootId/categories/:category`  | 重命名分类（body: `{ newCategory }`）               | 是         |
+| GET    | `/static/files/:rootId/:category`             | 分页查询文件列表                                    | 是         |
+| POST   | `/static/files/:rootId/upload`                | 普通上传文件 (multipart)                            | 是         |
+| GET    | `/static/files/:rootId/:category/*path`       | 下载/预览文件                                       | 否（公开） |
+| PATCH  | `/static/files/:rootId/:category/*path`       | 重命名文件（body: `{ newName }`）                   | 是         |
+| DELETE | `/static/files/:rootId/:category/*path`       | 删除文件                                            | 是         |
 
 **分页查询参数**：
 
@@ -270,12 +294,17 @@ vakao-static-hub/
 
 ### 分享链接
 
-| 方法   | 路径                   | 说明                                              | 认证       |
-| ------ | ---------------------- | ------------------------------------------------- | ---------- |
-| POST   | `/static/share`        | 创建分享链接（可设 `expiresInMs`、`maxAccesses`） | 是         |
-| GET    | `/static/share/list`   | 获取分享链接列表                                  | 是         |
-| DELETE | `/static/share/:token` | 撤销分享链接                                      | 是         |
-| GET    | `/static/share/:token` | 访问分享文件（支持 `download/w/h/q/format`）      | 否（公开） |
+| 方法   | 路径                               | 说明                                                        | 认证       |
+| ------ | ---------------------------------- | ----------------------------------------------------------- | ---------- |
+| POST   | `/static/share`                    | 创建分享链接（单文件/聚合、有效期、次数、密码）             | 是         |
+| GET    | `/static/share/list`               | 获取分享链接列表                                            | 是         |
+| DELETE | `/static/share/:token`             | 撤销分享链接                                                | 是         |
+| GET    | `/static/share/:token/info`        | 获取分享元信息（类型、文件名、是否需密码等）                | 否（公开） |
+| POST   | `/static/share/:token/verify`      | 校验访问密码，返回短期访问令牌（HMAC）                      | 否（公开） |
+| GET    | `/static/share/:token/access-logs` | 获取该分享的访问记录（仅创建者）                            | 是         |
+| GET    | `/static/share/:token`             | 访问分享文件（支持 `download/w/h/q/format`、`accessToken`） | 否（公开） |
+
+> 前端公开访问页路由为 `/share/:token`（无 `/static` 前缀），生产环境由 SPA fallback 渲染，页面内再调用上述 API。
 
 ### APP 在线更新
 
@@ -305,11 +334,25 @@ vakao-static-hub/
 | GET    | `/static/app-updates/versions/:id`                             | 版本详情                                                         | 是   |
 | PATCH  | `/static/app-updates/versions/:id`                             | 编辑元数据（仅草稿/已下架可改）                                  | 是   |
 | POST   | `/static/app-updates/versions/:id/publish`                     | 发布（`full` 全量 / `gray` 灰度，带门禁校验）                    | 是   |
+| POST   | `/static/app-updates/versions/:id/rollback`                    | 一键回滚到上一个全量版本                                         | 是   |
 | PUT    | `/static/app-updates/versions/:id/force`                       | 远程修改强更开关（逃生口，无需重新发版）                         | 是   |
 | POST   | `/static/app-updates/versions/:id/offline`                     | 一键下架（止血开关，文件保留）                                   | 是   |
 | DELETE | `/static/app-updates/versions/:id`                             | 物理删除（仅草稿/已下架，删除 APK 文件及全部关联记录，不可恢复） | 是   |
+| GET    | `/static/app-updates/stats/funnel?appKey=&startTime=&endTime=` | 升级漏斗统计（check/download/install 转化率）                    | 是   |
 
 版本状态：`0` 草稿 / `1` 灰度 / `2` 全量 / `3` 已下架；`(platform, appKey, versionCode)` 唯一。
+
+### 审计日志
+
+| 方法 | 路径                                                   | 说明                 | 认证 |
+| ---- | ------------------------------------------------------ | -------------------- | ---- |
+| GET  | `/static/audit-logs?page=&pageSize=&action=&username=` | 操作审计日志分页查询 | 是   |
+
+### 监控指标
+
+| 方法 | 路径              | 说明                                                         | 认证 |
+| ---- | ----------------- | ------------------------------------------------------------ | ---- |
+| GET  | `/static/metrics` | QPS、内存、存储总量、活跃分享数、应用/版本数、24h 升级事件量 | 是   |
 
 ---
 

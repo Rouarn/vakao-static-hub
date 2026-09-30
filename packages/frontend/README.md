@@ -4,7 +4,7 @@
   <img src="./public/intro.svg" width="300" height="155" alt="Vakao Static Hub Logo" />
 </p>
 
-基于 **Vue 3** + **Vite** + **NaiveUI** 的静态资源管理系统前端，提供文件管理、随机图片浏览、占位图生成、一言服务、文件分享链接管理和 APP 在线更新管理等功能。
+基于 **Vue 3** + **Vite** + **NaiveUI** 的静态资源管理系统前端，提供文件管理、随机图片浏览、占位图生成、一言服务、文件分享链接管理（含访问密码与访问记录）、APP 在线更新管理、存储统计、重复文件检测、用户管理等功能。
 
 > 后端文档：参见 [../../README.md](../../README.md)
 
@@ -12,21 +12,21 @@
 
 ## 技术栈
 
-| 类别 | 技术 | 说明 |
-|------|------|------|
-| 框架 | Vue 3.5 + Composition API | `<script setup>` 语法 |
-| 构建 | Vite 8 | 极速 HMR |
-| UI 组件 | NaiveUI 2 | 组件自动按需导入 |
-| 状态管理 | Pinia 3 + pinia-plugin-persistedstate | 状态持久化到 localStorage |
-| 路由 | Vue Router 5 | 路由守卫 + 权限控制 |
-| HTTP | Axios | 拦截器自动附加 Token |
-| CSS | UnoCSS | 原子化 CSS |
-| 图标 | @vicons/ionicons5 | IonIcons 图标集 |
-| 工具 | @vueuse/core, dayjs | 组合式工具 + 日期处理 |
-| 预览 | jit-viewer | 多格式文件在线预览 |
-| 共享类型 | @vakao/shared | monorepo 内部包，与后端共用模型 |
-| 自动导入 | unplugin-auto-import + unplugin-vue-components | API 与组件按需自动导入 |
-| 类型 | TypeScript 6 | 全类型覆盖 |
+| 类别     | 技术                                           | 说明                            |
+| -------- | ---------------------------------------------- | ------------------------------- |
+| 框架     | Vue 3.5 + Composition API                      | `<script setup>` 语法           |
+| 构建     | Vite 8                                         | 极速 HMR                        |
+| UI 组件  | NaiveUI 2                                      | 组件自动按需导入                |
+| 状态管理 | Pinia 3 + pinia-plugin-persistedstate          | 状态持久化到 localStorage       |
+| 路由     | Vue Router 5                                   | 路由守卫 + 权限控制             |
+| HTTP     | Axios                                          | 拦截器自动附加 Token            |
+| CSS      | UnoCSS                                         | 原子化 CSS                      |
+| 图标     | @vicons/ionicons5                              | IonIcons 图标集                 |
+| 工具     | @vueuse/core, dayjs                            | 组合式工具 + 日期处理           |
+| 预览     | jit-viewer                                     | 多格式文件在线预览              |
+| 共享类型 | @vakao/shared                                  | monorepo 内部包，与后端共用模型 |
+| 自动导入 | unplugin-auto-import + unplugin-vue-components | API 与组件按需自动导入          |
+| 类型     | TypeScript 6                                   | 全类型覆盖                      |
 
 ---
 
@@ -105,15 +105,25 @@ packages/frontend/
     │   ├── api-docs/
     │   │   └── index.vue          # API 文档：iframe 嵌入 Swagger UI
     │   ├── share-links/
-    │   │   └── index.vue          # 分享链接管理：列表、复制、撤销
-    │   └── app-update/
-    │       ├── index.vue          # APP 更新管理：应用与版本列表
-    │       ├── publish-modal.vue  # 发布（全量/灰度）弹窗
-    │       ├── version-form-modal.vue # 上传 APK 新建版本弹窗
-    │       └── app-action-modal.vue    # 应用重命名/删除（需输入确认短语）
+    │   │   └── index.vue          # 分享链接管理：列表、复制、撤销、访问记录
+    │   ├── share-access/
+    │   │   └── index.vue          # 公开分享访问页：密码校验、单文件/聚合文件列表
+    │   ├── app-update/
+    │   │   ├── index.vue          # APP 更新管理：应用与版本列表
+    │   │   ├── publish-modal.vue  # 发布（全量/灰度/自动递增/定时）弹窗
+    │   │   ├── version-form-modal.vue # 上传 APK 新建版本弹窗
+    │   │   └── app-action-modal.vue    # 应用重命名/删除（需输入确认短语）
+    │   ├── app-update-stats/
+    │   │   └── index.vue          # 升级漏斗统计：check/download/install 转化率
+    │   ├── storage-stats/
+    │   │   └── index.vue          # 存储用量统计：按根目录/分类聚合
+    │   ├── duplicate-files/
+    │   │   └── index.vue          # 重复文件检测：按哈希分组、手动清理
+    │   └── user-management/
+    │       └── index.vue          # 用户管理：列表、删除（禁止删除自己）
     ├── components/
     │   ├── loading-screen.vue     # 全局加载屏
-    │   ├── upload-modal.vue       # 上传弹窗：拖拽、文件夹上传、进度条
+    │   ├── upload-modal.vue       # 上传弹窗：拖拽、文件夹上传、大文件自动分片、断点续传
     │   ├── root-management.vue    # 根目录管理：增删改、服务器目录浏览
     │   └── copyable-code.vue      # 可复制代码块
     ├── composables/
@@ -146,19 +156,24 @@ packages/frontend/
 
 ## 路由表
 
-| 路径 | 页面 | 需要认证 | 说明 |
-|------|------|----------|------|
-| `/login` | 登录页 | 否 | 用户名/密码登录或注册，支持 redirect 参数回跳 |
-| `/file-preview` | 文件预览 | 否 | 独立页面，输入 URL 预览文件 |
-| `/` | 重定向 | - | 自动跳转到 `/file-list` |
-| `/file-list` | 文件列表 | 是 | 主页面，文件浏览/上传/删除/重命名/搜索/排序/分享 |
-| `/share-links` | 分享链接管理 | 是 | 分享链接列表、复制、撤销 |
-| `/api-docs` | API 文档 | 是 | iframe 嵌入 `/docs` Swagger UI |
-| `/placeholder-generator` | 占位图生成器 | 是 | 可视化占位图配置工具 |
-| `/hitokoto` | 一言 | 是 | 随机短句展示 |
-| `/app-update` | APP 更新管理 | 是 | 应用与版本管理、发布、强更、下架 |
-| `/local-file-preview` | 本地文件预览 | 是 | 布局内嵌的文件预览 |
-| `/:pathMatch(.*)*` | 404 兜底 | - | 重定向到 `/file-list` |
+| 路径                     | 页面         | 需要认证 | 说明                                             |
+| ------------------------ | ------------ | -------- | ------------------------------------------------ |
+| `/login`                 | 登录页       | 否       | 用户名/密码登录或注册，支持 redirect 参数回跳    |
+| `/file-preview`          | 文件预览     | 否       | 独立页面，输入 URL 预览文件                      |
+| `/share/:token`          | 分享访问页   | 否       | 公开页面，密码校验、单文件下载或聚合文件列表     |
+| `/`                      | 重定向       | -        | 自动跳转到 `/file-list`                          |
+| `/file-list`             | 文件列表     | 是       | 主页面，文件浏览/上传/删除/重命名/搜索/排序/分享 |
+| `/share-links`           | 分享链接管理 | 是       | 分享链接列表、复制、撤销、访问记录               |
+| `/api-docs`              | API 文档     | 是       | iframe 嵌入 `/docs` Swagger UI                   |
+| `/placeholder-generator` | 占位图生成器 | 是       | 可视化占位图配置工具                             |
+| `/hitokoto`              | 一言         | 是       | 随机短句展示                                     |
+| `/app-update`            | APP 更新管理 | 是       | 应用与版本管理、发布、强更、下架、回滚           |
+| `/app-update-stats`      | 升级漏斗统计 | 是       | 各版本 check/download/install 数量与转化率       |
+| `/storage-stats`         | 存储统计     | 是       | 按根目录/分类聚合的存储用量可视化                |
+| `/duplicate-files`       | 重复文件检测 | 是       | 按内容哈希分组展示重复副本并手动清理             |
+| `/user-management`       | 用户管理     | 是       | 用户列表与删除（禁止删除自己）                   |
+| `/local-file-preview`    | 本地文件预览 | 是       | 布局内嵌的文件预览                               |
+| `/:pathMatch(.*)*`       | 404 兜底     | -        | 重定向到 `/file-list`                            |
 
 ---
 
@@ -202,12 +217,13 @@ packages/frontend/
 - **分页浏览**：默认每页 100 条，支持页码跳转
 - **搜索过滤**：关键词搜索匹配文件名和路径
 - **排序**：支持按名称、大小、修改时间排序，升序/降序切换
+- **批量操作**：列表视图支持多选，批量删除、批量移动分类、批量创建聚合分享
 - **文件操作**：
   - 下载：点击直接下载
   - 删除：弹窗确认后删除
   - 重命名：弹窗输入新文件名
   - 预览：可预览格式（图片、压缩包、PDF 等）内嵌打开
-  - 创建分享链接：设置有效期与最大访问次数，生成公开外链
+  - 创建分享链接：设置有效期、最大访问次数与可选访问密码，生成公开外链
 - **根目录切换**：顶部下拉切换不同资源根目录
 - **分类导航**：侧边栏显示当前根目录下的所有分类（一级子目录）
 - **响应式**：适配移动端，小于 `md` 断点时侧边栏折叠
@@ -218,6 +234,7 @@ packages/frontend/
 - **文件夹处理**：
   - 单个文件夹：自动设置为分类路径，保留内部结构
   - 多个文件/文件夹：递归读取并保留目录结构
+- **大文件分片上传**：超过 10MB 自动启用 5MB 分片，逐片进度显示，网络中断后自动续传已上传分片
 - **进度显示**：每个文件独立进度条
 - **分类输入**：支持自动补全已有分类名称
 
@@ -264,11 +281,30 @@ packages/frontend/
 
 ### 8. 分享链接管理
 
-- **列表展示**：查看所有已创建的分享链接，含 token、目标文件、有效期、访问次数
-- **复制链接**：一键复制公开访问 URL
+- **列表展示**：查看所有已创建的分享链接，含 token、类型（单文件/聚合）、目标文件、有效期、访问次数、是否设密码
+- **复制链接**：一键复制公开访问 URL（`{origin}/share/{token}`）
+- **访问记录**：查看指定分享的访问历史（IP、User-Agent、时间），仅创建者可见
 - **撤销**：使指定分享链接立即失效
 
-### 9. APP 在线更新管理
+### 9. 分享访问页（公开）
+
+- **密码校验**：设有访问密码的分享需输入密码，验证通过后获得短期访问令牌
+- **单文件分享**：直接预览/下载
+- **聚合分享**：展示文件列表，支持逐个下载或打包下载（如有）
+
+### 10. 存储用量统计
+
+- 按资源根目录聚合展示总占用空间与文件数
+- 支持展开查看各分类用量
+- NProgress 进度条可视化占比
+
+### 11. 重复文件检测
+
+- 按 `contentHash`（SHA-256）分组展示内容完全相同的文件
+- 每组显示文件路径、大小、修改时间
+- 支持手动选择保留哪个、删除其余（复用现有删除接口）
+
+### 12. APP 在线更新管理
 
 - **应用管理**：
   - 列出 `software-update` 根下的全部应用
@@ -277,9 +313,24 @@ packages/frontend/
 - **版本管理**：
   - 上传 APK 新建草稿版本（自动计算包体大小与 SHA-256）
   - 版本列表按应用筛选、按状态筛选（草稿/灰度/全量/下架）
-  - 发布：全量发布或按灰度百分比发布
+  - 发布：全量发布或按灰度百分比发布，支持灰度自动递增时间表
+  - 定时发布：创建/编辑草稿时可设定未来发布时间
+  - 一键回滚：将当前版本下架并自动恢复上一个全量版本
   - 强更开关：远程修改，无需重新发版
   - 下架：一键止血，物理文件保留
+
+### 13. 升级漏斗统计
+
+- 按 appKey + 版本 + 时间范围筛选
+- 展示 check → download → install_success / install_fail 各节点数量
+- 自动计算下载率、安装成功率
+- `versionName` 作为展示维度
+
+### 14. 用户管理
+
+- 查看所有注册用户（id、用户名、创建时间，不含密码哈希）
+- 删除用户（当前登录用户按钮置灰，防止误删自己）
+- 修改密码：顶部用户菜单弹窗，需验证旧密码
 
 ---
 
@@ -297,10 +348,10 @@ packages/frontend/
 
 ## 环境变量
 
-| 变量 | 默认值 | 说明 |
-|------|--------|------|
-| `VITE_API_BASE_URL` | - | 后端 API 地址（开发时通常是 `http://localhost:9865`，生产部署为 `"origin"` 即同源） |
-| `VITE_HITOKOTO_API_URL` | - | 一言 API 地址（一言页面直接 fetch 该地址，不经过后端代理） |
+| 变量                    | 默认值 | 说明                                                                                |
+| ----------------------- | ------ | ----------------------------------------------------------------------------------- |
+| `VITE_API_BASE_URL`     | -      | 后端 API 地址（开发时通常是 `http://localhost:9865`，生产部署为 `"origin"` 即同源） |
+| `VITE_HITOKOTO_API_URL` | -      | 一言 API 地址（一言页面直接 fetch 该地址，不经过后端代理）                          |
 
 前端通过 `src/utils/env.ts` 解析：
 
