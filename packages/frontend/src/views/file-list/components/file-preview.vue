@@ -1,9 +1,12 @@
 <script setup lang="ts">
-import { ref, onUnmounted, nextTick, computed } from 'vue';
+import { ref, onMounted, onUnmounted, nextTick, computed } from 'vue';
 import { NIcon, NModal, NSpin, NAlert, NButton } from 'naive-ui';
 import { DocumentTextOutline } from '@vicons/ionicons5';
-import { createViewer, type ViewerInstance } from 'jit-viewer';
-import 'jit-viewer/style.css';
+import {
+  loadJitViewer,
+  prefetchJitViewer,
+  type ViewerInstance,
+} from '@/utils/jit-viewer-loader';
 import { isSupported } from '@/utils/file-types';
 import { useDark } from '@vueuse/core';
 
@@ -44,6 +47,8 @@ const initViewer = async () => {
   if (!viewerRef.value) return;
 
   try {
+    // 点击预览时才下载 jit-viewer（约 gzip 2.8MB），不阻塞首页渲染
+    const { createViewer } = await loadJitViewer();
     viewerInstance = createViewer({
       target: viewerRef.value,
       file: previewUrl(),
@@ -85,6 +90,13 @@ const handleClose = () => {
 const handleReload = () => {
   handleClick();
 };
+
+// 卡片渲染后趁浏览器空闲预取，首次点击预览时几乎无等待
+onMounted(() => {
+  if (isSupported(props.filePath)) {
+    prefetchJitViewer();
+  }
+});
 
 onUnmounted(() => {
   if (viewerInstance) {

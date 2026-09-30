@@ -46,13 +46,39 @@ export default defineConfig({
   build: {
     rollupOptions: {
       output: {
-        chunkFileNames: 'assets/js/[name]-[hash].js',
+        chunkFileNames(chunkInfo) {
+          // jit-viewer 走默认分包（保持其内部 CAD/3D 等二级懒加载 chunk），
+          // 这里仅统一加 jit- 前缀，便于在 Network 面板识别
+          if (
+            (chunkInfo.moduleIds ?? []).some((id) =>
+              id.includes('node_modules/jit-viewer'),
+            )
+          ) {
+            return 'assets/js/jit-[name]-[hash].js';
+          }
+          return 'assets/js/[name]-[hash].js';
+        },
         entryFileNames: 'assets/js/[name]-[hash].js',
         assetFileNames: 'assets/[ext]/[name]-[hash].[ext]',
         manualChunks(id) {
+          // Vite/Rolldown/Vue 运行时助手必须固定到 runtime chunk。
+          // 否则 Rolldown 会把 vite/preload-helper 合并进 jit-viewer chunk，
+          // 导致入口 chunk 为了该助手静态依赖 8MB 的预览 SDK，
+          // index.html 首屏直接 modulepreload 它，造成白屏。
+          if (
+            id.includes('vite/preload-helper') ||
+            id.includes('vite/modulepreload-polyfill') ||
+            id.includes('plugin-vue:export-helper')
+          ) {
+            return 'rolldown-runtime';
+          }
           if (id.includes('node_modules')) {
+            // jit-viewer 仅被动态 import（见 utils/jit-viewer-loader），
+            // 必须交给默认分包，切勿 return 固定 chunk 名：
+            // Rolldown 会把 __vitePreload 助手合并进该命名 chunk，
+            // 迫使入口静态依赖整个预览 SDK。
             if (id.includes('jit-viewer')) {
-              return 'jit-viewer';
+              return;
             }
             if (id.includes('naive-ui')) {
               return 'naive-ui';
@@ -90,6 +116,7 @@ export default defineConfig({
         warn(warning);
       },
     },
-    chunkSizeWarningLimit: 12000, // Increase limit for jit-viewer large chunk
+    // jit-viewer 核心 chunk 约 8MB（仅点击预览时按需加载），调高阈值避免误报
+    chunkSizeWarningLimit: 12000,
   },
 });

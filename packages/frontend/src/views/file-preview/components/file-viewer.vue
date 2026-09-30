@@ -1,7 +1,6 @@
 <script setup lang="ts">
 import { ref, onUnmounted, nextTick, watch, onMounted } from 'vue';
-import { createViewer, type ViewerInstance } from 'jit-viewer';
-import 'jit-viewer/style.css';
+import { loadJitViewer, type ViewerInstance } from '@/utils/jit-viewer-loader';
 import { NSpin } from 'naive-ui';
 import { isImage } from '@/utils/file-types';
 
@@ -59,6 +58,8 @@ const initViewer = async () => {
   await nextTick();
 
   try {
+    // 动态加载 jit-viewer，使预览页外壳与 loading 先渲染，SDK 随后就位
+    const { createViewer } = await loadJitViewer();
     const url = new URL(props.fileUrl);
     const filename = url.pathname.split('/').pop() || 'file';
     const isImageFile = isImage(filename);
