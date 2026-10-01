@@ -12,6 +12,7 @@ import {
 import type { UserInfo } from '@vakao/shared';
 import { listUsers, deleteUser } from '@/api/auth';
 import { useAuthStore } from '@/stores/modules/auth';
+import RegisterForm from './register.vue';
 
 const authStore = useAuthStore();
 const message = useMessage();
@@ -21,6 +22,7 @@ const loading = ref(false);
 const showDeleteModal = ref(false);
 const deleteTarget = ref<UserInfo | null>(null);
 const deleting = ref(false);
+const showCreateModal = ref(false);
 
 function formatTime(ts?: number) {
   if (!ts) return '-';
@@ -43,6 +45,12 @@ async function loadUsers() {
 function openDeleteModal(user: UserInfo) {
   deleteTarget.value = user;
   showDeleteModal.value = true;
+}
+
+async function handleCreateSuccess(username: string) {
+  showCreateModal.value = false;
+  message.success(`用户 ${username} 创建成功`);
+  await loadUsers();
 }
 
 async function confirmDelete() {
@@ -102,9 +110,14 @@ onMounted(loadUsers);
   <div class="p-4 sm:p-6">
     <NCard title="用户管理" class="shadow-xl rounded-2xl border-none bg-base">
       <template #header-extra>
-        <NButton size="small" :loading="loading" @click="loadUsers">
-          刷新
-        </NButton>
+        <div class="flex items-center gap-2">
+          <NButton size="small" type="primary" @click="showCreateModal = true">
+            创建用户
+          </NButton>
+          <NButton size="small" :loading="loading" @click="loadUsers">
+            刷新
+          </NButton>
+        </div>
       </template>
       <p class="text-sm text-gray-500 mb-4">
         所有已登录用户均可创建新账号；此处可查看并删除用户，当前登录用户不可删除。
@@ -116,6 +129,15 @@ onMounted(loadUsers);
         :row-key="(row: UserInfo) => row.id"
       />
     </NCard>
+
+    <NModal
+      v-model:show="showCreateModal"
+      preset="card"
+      title="创建账号"
+      class="max-w-md w-full"
+    >
+      <RegisterForm @success="handleCreateSuccess" />
+    </NModal>
 
     <NModal
       v-model:show="showDeleteModal"

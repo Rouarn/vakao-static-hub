@@ -58,7 +58,7 @@ export class AuthController {
     @Body() body: RegisterDto,
     @CurrentUser() currentUser: { userId: number; username: string },
     @Req() req: Request,
-  ): Promise<LoginResponse> {
+  ): Promise<UserInfo> {
     const result = await this.authService.register(
       body.username,
       body.password,
@@ -69,7 +69,7 @@ export class AuthController {
       username: currentUser.username,
       action: 'user.register',
       resourceType: 'user',
-      resourceId: String(result.user.id),
+      resourceId: String(result.id),
       details: { username: body.username },
       ...getRequestMeta(req),
     });

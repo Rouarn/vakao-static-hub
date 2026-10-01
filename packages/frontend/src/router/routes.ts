@@ -65,12 +65,6 @@ export const builtinChildren: RouteRecordRaw[] = [
     meta: { requiresAuth: true },
   },
   {
-    path: 'register',
-    name: 'register',
-    component: () => import('@/views/login/register.vue'),
-    meta: { requiresAuth: true },
-  },
-  {
     path: 'storage-stats',
     name: 'storage-stats',
     component: () => import('@/views/storage-stats/index.vue'),

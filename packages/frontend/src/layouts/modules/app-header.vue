@@ -17,7 +17,6 @@ import {
   RefreshOutline,
   CloudUploadOutline,
   PersonCircleOutline,
-  PersonAddOutline,
   LogOutOutline,
   MoonOutline,
   SunnyOutline,
@@ -72,9 +71,12 @@ async function submitChangePassword() {
   passwordLoading.value = true;
   try {
     await changePassword(oldPassword.value, newPassword.value);
-    message.success('密码修改成功');
     showPasswordModal.value = false;
     resetPasswordForm();
+    // 改密后所有已签发 token 失效，需重新登录
+    message.success('密码修改成功，请重新登录');
+    authStore.clearAuth();
+    void router.push({ name: 'login' });
   } catch (error: any) {
     message.error(
       error.response?.data?.message || error.message || '密码修改失败',
@@ -113,11 +115,6 @@ const mobileMenuOptions = computed<DropdownOption[]>(() => [
       }),
   },
   {
-    key: 'create-account',
-    label: '创建账号',
-    icon: () => h(NIcon, null, { default: () => h(PersonAddOutline) }),
-  },
-  {
     key: 'user-management',
     label: '用户管理',
     icon: () => h(NIcon, null, { default: () => h(PeopleOutline) }),
@@ -144,7 +141,6 @@ function handleMobileMenuSelect(key: string) {
     case 'theme':
       toggleDark();
       break;
-    case 'create-account':
     case 'user-management':
     case 'change-password':
     case 'logout':
@@ -153,13 +149,8 @@ function handleMobileMenuSelect(key: string) {
   }
 }
 
-/** 桌面端用户菜单：创建账号 / 用户管理 / 修改密码 / 退出登录 */
+/** 桌面端用户菜单：用户管理 / 修改密码 / 退出登录 */
 const userMenuOptions: DropdownOption[] = [
-  {
-    key: 'create-account',
-    label: '创建账号',
-    icon: () => h(NIcon, null, { default: () => h(PersonAddOutline) }),
-  },
   {
     key: 'user-management',
     label: '用户管理',
@@ -179,9 +170,7 @@ const userMenuOptions: DropdownOption[] = [
 ];
 
 function handleUserMenuSelect(key: string) {
-  if (key === 'create-account') {
-    void router.push({ name: 'register' });
-  } else if (key === 'user-management') {
+  if (key === 'user-management') {
     void router.push({ name: 'user-management' });
   } else if (key === 'change-password') {
     resetPasswordForm();

@@ -1,4 +1,5 @@
 import {
+  BadRequestException,
   ConflictException,
   Injectable,
   Logger,
@@ -54,11 +55,11 @@ export class AuthService implements OnModuleInit {
   }
 
   /**
-   * 注册新用户并直接签发令牌（注册即登录）
+   * 注册新用户（由已登录用户创建，不签发令牌，新用户需自行登录）
    * @param username 用户名
    * @param password 明文密码
    */
-  async register(username: string, password: string): Promise<LoginResponse> {
+  async register(username: string, password: string): Promise<UserInfo> {
     const existing = await this.userRepo.findOne({ where: { username } });
     if (existing) {
       throw new ConflictException('用户名已存在');
@@ -74,7 +75,7 @@ export class AuthService implements OnModuleInit {
     const saved = await this.userRepo.save(user);
     this.logger.log(`新用户注册成功: ${username} (id=${saved.id})`);
 
-    return this.issueToken(saved);
+    return this.toUserInfo(saved);
   }
 
   /**
@@ -100,6 +101,25 @@ export class AuthService implements OnModuleInit {
   async findById(id: number): Promise<UserInfo | null> {
     const user = await this.userRepo.findOne({ where: { id } });
     return user ? this.toUserInfo(user) : null;
+  }
+
+  /**
+   * 按 ID 查询认证信息（含密码最后修改时间），供 JWT 策略校验 token 时效
+   * updatedAt 目前仅在创建用户与修改密码时更新，可作为 passwordChangedAt 使用
+   */
+  async findAuthInfo(id: number): Promise<{
+    id: number;
+    username: string;
+    passwordChangedAt: number;
+  } | null> {
+    const user = await this.userRepo.findOne({ where: { id } });
+    return user
+      ? {
+          id: user.id,
+          username: user.username,
+          passwordChangedAt: user.updatedAt,
+        }
+      : null;
   }
 
   /** 用户修改自己的密码 */
@@ -132,7 +152,7 @@ export class AuthService implements OnModuleInit {
   /** 删除用户（禁止删除自己） */
   async deleteUser(id: number, currentUserId: number) {
     if (id === currentUserId) {
-      throw new UnauthorizedException('不能删除当前登录用户');
+      throw new BadRequestException('不能删除当前登录用户');
     }
     const result = await this.userRepo.delete({ id });
     if (result.affected === 0) {

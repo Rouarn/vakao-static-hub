@@ -9,7 +9,7 @@ export function login(username: string, password: string) {
 }
 
 export function register(username: string, password: string) {
-  return post<LoginResponse>('/auth/register', {
+  return post<UserInfo>('/auth/register', {
     username,
     password,
   } satisfies RegisterParams);
