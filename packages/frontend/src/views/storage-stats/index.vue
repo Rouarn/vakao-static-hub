@@ -13,7 +13,8 @@ import {
   NSpin,
 } from 'naive-ui';
 import { RefreshOutline, PieChartOutline } from '@vicons/ionicons5';
-import { getUsageStats, type UsageStatsResult } from '@/api/files';
+import { getUsageStats } from '@/api/files';
+import type { UsageStatsResult } from '@vakao/shared';
 import { formatSize } from '@/utils/format';
 
 defineOptions({

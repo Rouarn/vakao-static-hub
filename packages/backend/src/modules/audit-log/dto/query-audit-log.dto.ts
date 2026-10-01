@@ -1,9 +1,10 @@
 import { ApiPropertyOptional } from '@nestjs/swagger';
 import { Type } from 'class-transformer';
 import { IsInt, IsOptional, IsString, Length, Max, Min } from 'class-validator';
+import type { AuditLogQuery } from '@vakao/shared';
 
 /** 审计日志分页查询参数 */
-export class QueryAuditLogDto {
+export class QueryAuditLogDto implements AuditLogQuery {
   @ApiPropertyOptional({ description: '页码', example: 1, default: 1 })
   @IsOptional()
   @Type(() => Number)

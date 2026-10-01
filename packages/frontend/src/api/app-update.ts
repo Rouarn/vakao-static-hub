@@ -1,13 +1,18 @@
 import { get, post, patch, del, http } from '../utils/request';
-import type { ApiResponse, PagedResult, AppVersion } from '@vakao/shared';
+import type {
+  ApiResponse,
+  PagedResult,
+  AppVersion,
+  ListVersionsQuery,
+  GrayIncrementStep,
+  RollbackResult,
+  FunnelStatsResult,
+} from '@vakao/shared';
 import type { AxiosProgressEvent } from 'axios';
 
-export interface ListVersionsParams {
-  page?: number;
-  pageSize?: number;
-  status?: number;
-  appKey?: string;
-}
+export type { FunnelStatItem, GrayIncrementStep } from '@vakao/shared';
+
+export type ListVersionsParams = ListVersionsQuery;
 
 /** 获取全部应用标识（software-update 根下的分类目录） */
 export function getApps() {
@@ -101,11 +106,6 @@ export function updateVersion(
   return patch<AppVersion>(`/app-updates/versions/${id}`, payload);
 }
 
-export interface GrayIncrementStep {
-  hours: number;
-  percent: number;
-}
-
 export function publishVersion(
   id: number,
   payload: {
@@ -132,41 +132,12 @@ export function offlineVersion(id: number) {
   return post<AppVersion>(`/app-updates/versions/${id}/offline`);
 }
 
-export interface RollbackResult {
-  success: true;
-  rolledBack: { id: number; versionCode: number };
-  restored: { id: number; versionCode: number; versionName: string };
-}
-
 export function rollbackVersion(id: number) {
   return post<RollbackResult>(`/app-updates/versions/${id}/rollback`);
 }
 
 export function removeVersion(id: number) {
   return del<{ success: true }>(`/app-updates/versions/${id}`);
-}
-
-export interface FunnelStatItem {
-  toVersionCode: number;
-  versionName: string;
-  checkNoUpdate: number;
-  promptShow: number;
-  downloadStart: number;
-  downloadSuccess: number;
-  downloadFail: number;
-  verifyFail: number;
-  installSuccess: number;
-  installFail: number;
-  newVersionLaunch: number;
-  downloadRate: string;
-  installRate: string;
-  overallRate: string;
-}
-
-export interface FunnelStatsResult {
-  appKey: string;
-  items: FunnelStatItem[];
-  checkNoUpdateTotal: number;
 }
 
 /** 升级漏斗统计（按版本聚合各事件转化率） */

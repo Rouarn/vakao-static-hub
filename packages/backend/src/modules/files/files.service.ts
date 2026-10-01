@@ -32,6 +32,13 @@ import {
   getFileExtension,
 } from './utils/path-utils.js';
 import { SOFTWARE_UPDATE_ROOT_ID } from '../app-update/app-update.constants.js';
+import type {
+  UsageStatsResult,
+  BatchDeleteResult,
+  BatchMoveResult,
+  DuplicateScanResult,
+  ChunkUploadInitResult,
+} from '@vakao/shared';
 
 @Injectable()
 export class FilesService {
@@ -179,7 +186,7 @@ export class FilesService {
    * 存储用量统计：按资源根/分类聚合 file_entries 索引表
    * 数据与文件索引实时一致（索引本身由文件操作事件驱动同步）
    */
-  async getUsageStats() {
+  async getUsageStats(): Promise<UsageStatsResult> {
     const rows = await this.repo
       .createQueryBuilder('f')
       .select('f.rootId', 'rootId')
@@ -260,7 +267,7 @@ export class FilesService {
    * 存量索引记录可能没有 contentHash——先按文件大小分组（大小相同才可能重复），
    * 仅对大小重复且尚未计算哈希的记录惰性补算并回写索引，避免全量扫盘
    */
-  async getDuplicateFiles(rootId?: string) {
+  async getDuplicateFiles(rootId?: string): Promise<DuplicateScanResult> {
     // 1. 找出存在重复的文件大小（忽略 0 字节文件，空文件无去重意义）
     const sizeQb = this.repo
       .createQueryBuilder('f')
@@ -483,7 +490,11 @@ export class FilesService {
     return results;
   }
 
-  async batchDeleteFiles(rootId: string, category: string, paths: string[]) {
+  async batchDeleteFiles(
+    rootId: string,
+    category: string,
+    paths: string[],
+  ): Promise<BatchDeleteResult> {
     const { dbCategory, relPathSuffix } = normalizeCategoryPath(category);
     const rootPath = this.resourceRoots.resolveRootPath(rootId);
 
@@ -537,7 +548,7 @@ export class FilesService {
     category: string,
     paths: string[],
     targetCategory: string,
-  ) {
+  ): Promise<BatchMoveResult> {
     if (rootId === SOFTWARE_UPDATE_ROOT_ID) {
       throw new BadRequestException(
         'software-update 根下的分类即应用，移动文件会破坏版本记录，请在 APP 版本管理中操作',
@@ -706,7 +717,7 @@ export class FilesService {
     filename: string,
     size: number,
     chunkSize: number,
-  ) {
+  ): Promise<ChunkUploadInitResult> {
     const uploadId = createHash('md5')
       .update(`${rootId}:${category}:${filename}:${size}:${Date.now()}`)
       .digest('hex');

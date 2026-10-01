@@ -65,6 +65,21 @@ const resourceTypeOptions: SelectOption[] = [
   { label: '应用', value: 'app' },
 ];
 
+/** 动作值 → 中文标签映射（未知值回退到原始值） */
+const actionLabelMap = new Map<string, string>(
+  actionOptions.map((o) => [o.value as string, o.label as string]),
+);
+/** 资源类型值 → 中文标签映射 */
+const resourceTypeLabelMap = new Map<string, string>(
+  resourceTypeOptions.map((o) => [o.value as string, o.label as string]),
+);
+function getActionLabel(action: string): string {
+  return actionLabelMap.get(action) ?? action;
+}
+function getResourceTypeLabel(type: string): string {
+  return resourceTypeLabelMap.get(type) ?? type;
+}
+
 // 筛选表单
 const filterUsername = ref('');
 const filterAction = ref<string | null>(null);
@@ -194,17 +209,32 @@ const columns: DataTableColumns<AuditLog> = [
   {
     title: '动作',
     key: 'action',
-    width: 150,
+    width: 140,
     render: (row) =>
       h(
         NTag,
-        { size: 'small', type: actionTagType(row.action), bordered: false },
         {
-          default: () => row.action,
+          size: 'small',
+          type: actionTagType(row.action),
+          bordered: false,
+          title: row.action,
+        },
+        {
+          default: () => getActionLabel(row.action),
         },
       ),
   },
-  { title: '资源类型', key: 'resourceType', width: 110 },
+  {
+    title: '资源类型',
+    key: 'resourceType',
+    width: 100,
+    render: (row) =>
+      h(
+        NTag,
+        { size: 'small', bordered: false, title: row.resourceType },
+        { default: () => getResourceTypeLabel(row.resourceType) },
+      ),
+  },
   {
     title: '资源标识',
     key: 'resourceId',
@@ -344,11 +374,14 @@ onMounted(loadLogs);
             :type="actionTagType(detailTarget.action)"
             :bordered="false"
           >
-            {{ detailTarget.action }}
+            {{ getActionLabel(detailTarget.action) }}
+            <span class="text-gray-400 ml-1">({{ detailTarget.action }})</span>
           </NTag>
         </NDescriptionsItem>
         <NDescriptionsItem label="资源">
-          {{ detailTarget.resourceType }} / {{ detailTarget.resourceId ?? '-' }}
+          {{ getResourceTypeLabel(detailTarget.resourceType) }}
+          <span class="text-gray-400">({{ detailTarget.resourceType }})</span>
+          / {{ detailTarget.resourceId ?? '-' }}
         </NDescriptionsItem>
         <NDescriptionsItem label="IP 地址">
           {{ detailTarget.ip ?? '-' }}

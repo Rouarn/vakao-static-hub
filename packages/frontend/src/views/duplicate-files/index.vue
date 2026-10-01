@@ -12,11 +12,8 @@ import {
   NCheckbox,
 } from 'naive-ui';
 import { RefreshOutline, TrashOutline, ScanOutline } from '@vicons/ionicons5';
-import {
-  getDuplicates,
-  deleteFile,
-  type DuplicateScanResult,
-} from '@/api/files';
+import { getDuplicates, deleteFile } from '@/api/files';
+import type { DuplicateScanResult } from '@vakao/shared';
 import { formatSize } from '@/utils/format';
 
 defineOptions({

@@ -5,6 +5,11 @@ import type {
   FileItem,
   FileConfig,
   PagedResult,
+  UsageStatsResult,
+  DuplicateScanResult,
+  ChunkUploadInitResult,
+  BatchDeleteResult,
+  BatchMoveResult,
 } from '@vakao/shared';
 
 export function getRoots() {
@@ -62,52 +67,8 @@ export function getFiles(
   );
 }
 
-export interface UsageCategory {
-  category: string;
-  totalSize: number;
-  fileCount: number;
-}
-
-export interface UsageRoot {
-  rootId: string;
-  rootName: string;
-  totalSize: number;
-  fileCount: number;
-  categories: UsageCategory[];
-}
-
-export interface UsageStatsResult {
-  roots: UsageRoot[];
-  totalSize: number;
-  fileCount: number;
-}
-
 export function getUsageStats() {
   return get<UsageStatsResult>('/files/stats/usage');
-}
-
-export interface DuplicateFileItem {
-  rootId: string;
-  category: string;
-  relPath: string;
-  name: string;
-  size: number;
-  mtime: number;
-}
-
-export interface DuplicateGroup {
-  contentHash: string;
-  size: number;
-  count: number;
-  files: DuplicateFileItem[];
-}
-
-export interface DuplicateScanResult {
-  groups: DuplicateGroup[];
-  groupCount: number;
-  duplicateFileCount: number;
-  /** 本次扫描惰性补算哈希的文件数 */
-  hashedCount: number;
 }
 
 export function getDuplicates(rootId?: string) {
@@ -138,12 +99,6 @@ export function uploadFile(
 }
 
 // ==================== 大文件分片上传 ====================
-
-export interface ChunkUploadInitResult {
-  uploadId: string;
-  chunkSize: number;
-  uploadedChunks: number[];
-}
 
 export function initChunkUpload(
   rootId: string,
@@ -190,10 +145,6 @@ export function cancelChunkUpload(uploadId: string) {
   return post<{ success: boolean }>('/files/upload/cancel', { uploadId });
 }
 
-export interface BatchDeleteResult {
-  deletedCount: number;
-}
-
 export function batchDeleteFiles(
   rootId: string,
   category: string,
@@ -204,17 +155,6 @@ export function batchDeleteFiles(
     category,
     paths,
   });
-}
-
-export interface BatchMoveResultItem {
-  path: string;
-  success: boolean;
-  error?: string;
-}
-
-export interface BatchMoveResult {
-  results: BatchMoveResultItem[];
-  movedCount: number;
 }
 
 export function batchMoveFiles(

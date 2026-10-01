@@ -15,6 +15,13 @@ import {
 import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity.js';
 import { UserEntity } from '../../infra/database/entities/user.entity.js';
 import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
+import type {
+  SystemMetrics,
+  QpsMetrics,
+  RootMetric,
+  ShareMetrics,
+  AppMetrics,
+} from '@vakao/shared';
 
 /** QPS 滑动窗口长度（毫秒），统计最近 60 秒内的请求数 */
 const QPS_WINDOW_MS = 60_000;
@@ -71,7 +78,7 @@ export class MetricsService {
   }
 
   /** 获取 QPS 指标：最近 60 秒内的请求数与平均每秒请求数 */
-  getQps() {
+  getQps(): QpsMetrics {
     const now = Date.now();
     this.pruneTimestamps(now);
     const requests = this.requestTimestamps.length;
@@ -95,7 +102,7 @@ export class MetricsService {
   }
 
   /** 汇总全部监控指标 */
-  async getMetrics() {
+  async getMetrics(): Promise<SystemMetrics> {
     const [storage, roots, shares, apps, upgradeEvents24h, users] =
       await Promise.all([
         this.getStorageMetrics(),
@@ -125,7 +132,10 @@ export class MetricsService {
   }
 
   /** 存储总量：file_entries 的文件数与总大小 */
-  private async getStorageMetrics() {
+  private async getStorageMetrics(): Promise<{
+    totalSize: number;
+    fileCount: number;
+  }> {
     const raw = await this.fileRepo
       .createQueryBuilder('f')
       .select('COUNT(*)', 'fileCount')
@@ -139,7 +149,7 @@ export class MetricsService {
   }
 
   /** 各资源根的文件数与大小（包含零文件的资源根） */
-  private async getRootMetrics() {
+  private async getRootMetrics(): Promise<RootMetric[]> {
     const rows = await this.fileRepo
       .createQueryBuilder('f')
       .select('f.rootId', 'rootId')
@@ -168,7 +178,7 @@ export class MetricsService {
   }
 
   /** 分享链接统计：总数 / 活跃数 / 已过期数（含过期时间与访问次数两种失效方式） */
-  private async getShareMetrics() {
+  private async getShareMetrics(): Promise<ShareMetrics> {
     const now = Date.now();
     const total = await this.shareRepo.count();
     const expired = await this.shareRepo
@@ -181,7 +191,7 @@ export class MetricsService {
   }
 
   /** 应用版本统计：按状态分组（草稿 / 灰度 / 全量 / 已下架） */
-  private async getAppMetrics() {
+  private async getAppMetrics(): Promise<AppMetrics> {
     const rows = await this.versionRepo
       .createQueryBuilder('v')
       .select('v.status', 'status')
@@ -208,7 +218,7 @@ export class MetricsService {
   }
 
   /** 最近 24 小时各升级事件类型的数量 */
-  private async getUpgradeEventMetrics() {
+  private async getUpgradeEventMetrics(): Promise<Record<string, number>> {
     const since = Date.now() - UPGRADE_EVENT_WINDOW_MS;
     const rows = await this.eventRepo
       .createQueryBuilder('e')

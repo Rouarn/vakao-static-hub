@@ -3,23 +3,7 @@ import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity.js';
 import { AppVersionEntity } from '../../infra/database/entities/app-version.entity.js';
-
-export interface FunnelStatItem {
-  toVersionCode: number;
-  versionName: string;
-  checkNoUpdate: number;
-  promptShow: number;
-  downloadStart: number;
-  downloadSuccess: number;
-  downloadFail: number;
-  verifyFail: number;
-  installSuccess: number;
-  installFail: number;
-  newVersionLaunch: number;
-  downloadRate: string;
-  installRate: string;
-  overallRate: string;
-}
+import type { FunnelStatItem, FunnelStatsResult } from '@vakao/shared';
 
 interface RawFunnelRow {
   toVersionCode: string | number | null;
@@ -40,11 +24,7 @@ export class AppUpdateStatsService {
     appKey: string,
     startTime: number,
     endTime: number,
-  ): Promise<{
-    appKey: string;
-    items: FunnelStatItem[];
-    checkNoUpdateTotal: number;
-  }> {
+  ): Promise<FunnelStatsResult> {
     const rows = await this.eventRepo
       .createQueryBuilder('e')
       .select('e.toVersionCode', 'toVersionCode')

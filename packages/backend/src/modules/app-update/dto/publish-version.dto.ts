@@ -11,9 +11,10 @@ import {
   Min,
   ValidateNested,
 } from 'class-validator';
+import type { GrayIncrementStep as IGrayIncrementStep } from '@vakao/shared';
 
 /** 灰度递增步骤：发布后 hours 小时将灰度扩大到 percent */
-export class GrayIncrementStep {
+export class GrayIncrementStep implements IGrayIncrementStep {
   @ApiProperty({ description: '发布后经过的小时数', example: 24 })
   @Type(() => Number)
   @IsInt()

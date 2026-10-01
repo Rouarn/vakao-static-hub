@@ -10,8 +10,9 @@ import {
   Max,
   Min,
 } from 'class-validator';
+import type { ListVersionsQuery } from '@vakao/shared';
 
-export class ListVersionsQueryDto {
+export class ListVersionsQueryDto implements ListVersionsQuery {
   @ApiPropertyOptional({ description: '页码', example: 1, default: 1 })
   @IsOptional()
   @Type(() => Number)

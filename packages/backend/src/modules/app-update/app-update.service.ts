@@ -55,6 +55,7 @@ import { PublishVersionDto } from './dto/publish-version.dto.js';
 import { ReportEventDto } from './dto/report-event.dto.js';
 import { UpdateVersionDto } from './dto/update-version.dto.js';
 import { getApkTmpDir } from './apk-upload.interceptor.js';
+import type { RollbackResult } from '@vakao/shared';
 
 @Injectable()
 export class AppUpdateService implements OnModuleInit {
@@ -607,7 +608,7 @@ export class AppUpdateService implements OnModuleInit {
    * 回滚目标取 versionCode 小于目标版本的最大历史版本（全量或已下架，已下架则重新发布）。
    * 整个状态变更在单事务中完成，保证同一时刻只有一个全量版本在线。
    */
-  async rollback(id: number) {
+  async rollback(id: number): Promise<RollbackResult> {
     const record = await this.getExisting(id);
     if (
       record.status !== VERSION_STATUS.GRAY &&
