@@ -6,15 +6,15 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
-import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity.js';
+import { FileEntryEntity } from '#/infra/database/entities/file-entry.entity.js';
+import { ShareLinkEntity } from '#/infra/database/entities/share-link.entity.js';
 import {
   AppVersionEntity,
   VERSION_STATUS,
-} from '../../infra/database/entities/app-version.entity.js';
-import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity.js';
-import { UserEntity } from '../../infra/database/entities/user.entity.js';
-import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
+} from '#/infra/database/entities/app-version.entity.js';
+import { AppUpgradeEventEntity } from '#/infra/database/entities/app-upgrade-event.entity.js';
+import { UserEntity } from '#/infra/database/entities/user.entity.js';
+import { ResourceRootsService } from '#/infra/resource-roots/resource-roots.service.js';
 import type {
   SystemMetrics,
   QpsMetrics,

@@ -12,7 +12,7 @@ import {
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiQuery, ApiTags } from '@nestjs/swagger';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
-import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
+import { ResourceRootsService } from '#/infra/resource-roots/resource-roots.service.js';
 import {
   CreateResourceRootDto,
   UpdateResourceRootDto,

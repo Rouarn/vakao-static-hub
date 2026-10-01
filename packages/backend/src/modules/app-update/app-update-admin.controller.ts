@@ -38,9 +38,9 @@ import { FunnelStatsQueryDto } from './dto/funnel-stats-query.dto.js';
 import { ListVersionsQueryDto } from './dto/list-versions-query.dto.js';
 import { PublishVersionDto } from './dto/publish-version.dto.js';
 import { UpdateVersionDto } from './dto/update-version.dto.js';
-import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { CurrentUser } from '#/common/decorators/current-user.decorator.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
-import { getRequestMeta } from '../../utils/request-meta.util.js';
+import { getRequestMeta } from '#/utils/request-meta.util.js';
 
 @ApiTags('APP 更新（管理端）')
 @ApiBearerAuth()

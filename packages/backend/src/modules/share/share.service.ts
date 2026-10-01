@@ -8,8 +8,8 @@ import {
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
 import { createHmac, timingSafeEqual } from 'node:crypto';
-import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity.js';
-import { ShareAccessLogEntity } from '../../infra/database/entities/share-access-log.entity.js';
+import { ShareLinkEntity } from '#/infra/database/entities/share-link.entity.js';
+import { ShareAccessLogEntity } from '#/infra/database/entities/share-access-log.entity.js';
 import { CreateShareLinkDto } from './dto/create-share-link.dto.js';
 import { hashPassword, verifyPassword } from '../auth/utils/password.util.js';
 

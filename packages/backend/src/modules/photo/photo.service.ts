@@ -10,7 +10,7 @@ import { OnEvent } from '@nestjs/event-emitter';
 import { access } from 'node:fs/promises';
 import { readdir } from 'node:fs/promises';
 import { extname, join } from 'node:path';
-import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
+import { ResourceRootsService } from '#/infra/resource-roots/resource-roots.service.js';
 import { ImageProcessorService } from '../files/image-processor.service.js';
 
 @Injectable()

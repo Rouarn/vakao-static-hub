@@ -35,13 +35,13 @@ import {
 import { pipeline } from 'node:stream/promises';
 import type { Request } from 'express';
 import { In, LessThanOrEqual, Repository } from 'typeorm';
-import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
-import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity.js';
+import { FileEntryEntity } from '#/infra/database/entities/file-entry.entity.js';
+import { AppUpgradeEventEntity } from '#/infra/database/entities/app-upgrade-event.entity.js';
 import {
   AppVersionEntity,
   VERSION_STATUS,
-} from '../../infra/database/entities/app-version.entity.js';
-import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
+} from '#/infra/database/entities/app-version.entity.js';
+import { ResourceRootsService } from '#/infra/resource-roots/resource-roots.service.js';
 import { safeJoin } from '../files/utils/path-utils.js';
 import {
   SOFTWARE_UPDATE_ROOT_ID,

@@ -5,7 +5,7 @@
 
 import { Global, Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { AuditLogEntity } from '../../infra/database/entities/audit-log.entity.js';
+import { AuditLogEntity } from '#/infra/database/entities/audit-log.entity.js';
 import { AuditLogController } from './audit-log.controller.js';
 import { AuditLogService } from './audit-log.service.js';
 

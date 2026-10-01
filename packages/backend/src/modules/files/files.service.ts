@@ -20,12 +20,12 @@ import { createHash } from 'node:crypto';
 import { dirname, isAbsolute, join, resolve } from 'node:path';
 import { platform } from 'node:os';
 import { pipeline } from 'node:stream/promises';
-import { ResourceRootsService } from '../../infra/resource-roots/resource-roots.service.js';
+import { ResourceRootsService } from '#/infra/resource-roots/resource-roots.service.js';
 import { ConfigService } from '@nestjs/config';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
-import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity.js';
+import { FileEntryEntity } from '#/infra/database/entities/file-entry.entity.js';
+import { ShareLinkEntity } from '#/infra/database/entities/share-link.entity.js';
 import {
   safeJoin,
   normalizeCategoryPath,

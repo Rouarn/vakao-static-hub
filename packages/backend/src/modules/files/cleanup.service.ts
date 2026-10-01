@@ -3,7 +3,7 @@ import { Cron, CronExpression } from '@nestjs/schedule';
 import { InjectRepository } from '@nestjs/typeorm';
 import { LessThan, Repository } from 'typeorm';
 import { access, constants } from 'node:fs/promises';
-import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity.js';
+import { ShareLinkEntity } from '#/infra/database/entities/share-link.entity.js';
 import { ImageProcessorService } from './image-processor.service.js';
 
 @Injectable()

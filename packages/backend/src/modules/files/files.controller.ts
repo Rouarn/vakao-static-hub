@@ -37,13 +37,13 @@ import { SkipThrottle } from '@nestjs/throttler';
 import { Public } from '../auth/decorators/public.decorator.js';
 import { ImageProcessorService } from './image-processor.service.js';
 import { getMimeType } from './utils/mime-types.js';
-import { ConfigurableFilesInterceptor } from '../../common/interceptors/configurable-files.interceptor.js';
-import { serveStaticFile } from '../../utils/file-serve.util.js';
+import { ConfigurableFilesInterceptor } from '#/common/interceptors/configurable-files.interceptor.js';
+import { serveStaticFile } from '#/utils/file-serve.util.js';
 import { FileIndexService } from './file-index.service.js';
 import { EventEmitter2 } from '@nestjs/event-emitter';
-import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { CurrentUser } from '#/common/decorators/current-user.decorator.js';
 import { AuditLogService } from '../audit-log/audit-log.service.js';
-import { getRequestMeta } from '../../utils/request-meta.util.js';
+import { getRequestMeta } from '#/utils/request-meta.util.js';
 
 @ApiTags('文件管理')
 @Controller('files')

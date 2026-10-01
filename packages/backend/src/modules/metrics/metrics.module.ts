@@ -6,11 +6,11 @@
 import { Module } from '@nestjs/common';
 import { APP_INTERCEPTOR } from '@nestjs/core';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
-import { ShareLinkEntity } from '../../infra/database/entities/share-link.entity.js';
-import { AppVersionEntity } from '../../infra/database/entities/app-version.entity.js';
-import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity.js';
-import { UserEntity } from '../../infra/database/entities/user.entity.js';
+import { FileEntryEntity } from '#/infra/database/entities/file-entry.entity.js';
+import { ShareLinkEntity } from '#/infra/database/entities/share-link.entity.js';
+import { AppVersionEntity } from '#/infra/database/entities/app-version.entity.js';
+import { AppUpgradeEventEntity } from '#/infra/database/entities/app-upgrade-event.entity.js';
+import { UserEntity } from '#/infra/database/entities/user.entity.js';
 import { MetricsController } from './metrics.controller.js';
 import { MetricsService } from './metrics.service.js';
 import { QpsInterceptor } from './qps.interceptor.js';

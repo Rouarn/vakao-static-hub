@@ -1,8 +1,8 @@
 import { Module } from '@nestjs/common';
 import { TypeOrmModule } from '@nestjs/typeorm';
-import { FileEntryEntity } from '../../infra/database/entities/file-entry.entity.js';
-import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity.js';
-import { AppVersionEntity } from '../../infra/database/entities/app-version.entity.js';
+import { FileEntryEntity } from '#/infra/database/entities/file-entry.entity.js';
+import { AppUpgradeEventEntity } from '#/infra/database/entities/app-upgrade-event.entity.js';
+import { AppVersionEntity } from '#/infra/database/entities/app-version.entity.js';
 import { AppUpdateAdminController } from './app-update-admin.controller.js';
 import { AppUpdateAppController } from './app-update-app.controller.js';
 import { AppUpdateClientController } from './app-update-client.controller.js';

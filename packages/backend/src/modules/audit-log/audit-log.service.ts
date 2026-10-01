@@ -6,7 +6,7 @@
 import { Injectable, Logger } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AuditLogEntity } from '../../infra/database/entities/audit-log.entity.js';
+import { AuditLogEntity } from '#/infra/database/entities/audit-log.entity.js';
 import { QueryAuditLogDto } from './dto/query-audit-log.dto.js';
 
 /** 审计日志写入参数 */

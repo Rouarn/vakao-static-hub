@@ -9,7 +9,7 @@
 
 import { Module } from '@nestjs/common';
 import { ScheduleModule } from '@nestjs/schedule';
-import { ResourceRootsModule } from '../../infra/resource-roots/resource-roots.module.js';
+import { ResourceRootsModule } from '#/infra/resource-roots/resource-roots.module.js';
 import { FilesModule } from '../files/files.module.js';
 import { PhotoController } from './photo.controller.js';
 import { PhotoService } from './photo.service.js';

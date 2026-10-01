@@ -1,8 +1,8 @@
 import { Injectable } from '@nestjs/common';
 import { InjectRepository } from '@nestjs/typeorm';
 import { Repository } from 'typeorm';
-import { AppUpgradeEventEntity } from '../../infra/database/entities/app-upgrade-event.entity.js';
-import { AppVersionEntity } from '../../infra/database/entities/app-version.entity.js';
+import { AppUpgradeEventEntity } from '#/infra/database/entities/app-upgrade-event.entity.js';
+import { AppVersionEntity } from '#/infra/database/entities/app-version.entity.js';
 import type { FunnelStatItem, FunnelStatsResult } from '@vakao/shared';
 
 interface RawFunnelRow {

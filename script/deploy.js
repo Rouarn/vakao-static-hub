@@ -213,6 +213,15 @@ async function main() {
   const deployDependencies = { ...backendPackageJson.dependencies };
   // 将 workspace 依赖 @vakao/shared 改为 file: 引用，指向同目录下的 server/shared
   deployDependencies['@vakao/shared'] = 'file:./server/shared';
+  // Node subpath imports（#/ 别名）：本地指向 packages/backend/dist，
+  // 部署产物中编译代码位于 server/，需将目标前缀改写为 ./server/*
+  let deployImports;
+  if (backendPackageJson.imports) {
+    deployImports = {};
+    for (const [key, target] of Object.entries(backendPackageJson.imports)) {
+      deployImports[key] = target.replace('./dist/', './server/');
+    }
+  }
   const deployPackageJson = {
     name: 'vakao-static-hub',
     version: backendPackageJson.version || '0.0.1',
@@ -221,6 +230,7 @@ async function main() {
     scripts: {
       start: 'node start-app.js',
     },
+    ...(deployImports ? { imports: deployImports } : {}),
     dependencies: deployDependencies,
   };
   await writeJson(path.join(distDir, 'package.json'), deployPackageJson, {
