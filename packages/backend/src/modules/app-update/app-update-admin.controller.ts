@@ -154,8 +154,24 @@ export class AppUpdateAdminController {
   async setForce(
     @Param('id', ParseIntPipe) id: number,
     @Body() dto: ForceUpdateDto,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
   ) {
-    return await this.service.setForce(id, dto);
+    const result = await this.service.setForce(id, dto);
+    // 审计：修改强更开关
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'app_version.force_update',
+      resourceType: 'app_version',
+      resourceId: String(id),
+      details: {
+        forceUpdate: dto.forceUpdate,
+        minVersionCode: dto.minVersionCode,
+      },
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   @Post(':id/offline')

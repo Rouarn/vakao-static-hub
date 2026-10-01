@@ -19,6 +19,8 @@ import {
   GridOutline,
   AppsOutline,
   StatsChartOutline,
+  DocumentTextOutline,
+  SpeedometerOutline,
 } from '@vicons/ionicons5';
 import { useFileListStore } from '@/stores/modules/file-list';
 
@@ -68,6 +70,8 @@ const MENU_CONFIG: MenuItem[] = [
     label: '系统管理',
     icon: SettingsOutline,
     children: [
+      { key: 'system-status', label: '系统状态', icon: SpeedometerOutline },
+      { key: 'audit-logs', label: '审计日志', icon: DocumentTextOutline },
       { key: 'user-management', label: '用户管理', icon: PeopleOutline },
       { key: 'api-docs', label: 'API 接口文档', icon: CodeSlashOutline },
     ],

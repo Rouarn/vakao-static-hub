@@ -119,6 +119,10 @@ packages/frontend/
     │   │   └── index.vue          # 存储用量统计：按根目录/分类聚合
     │   ├── duplicate-files/
     │   │   └── index.vue          # 重复文件检测：按哈希分组、手动清理
+    │   ├── audit-logs/
+    │   │   └── index.vue          # 操作审计日志：动作/资源/用户/时间筛选、详情查看
+    │   ├── system-status/
+    │   │   └── index.vue          # 系统状态：QPS、内存、存储、分享、版本、24h 升级事件
     │   └── user-management/
     │       └── index.vue          # 用户管理：列表、删除（禁止删除自己）
     ├── components/
@@ -135,6 +139,7 @@ packages/frontend/
     │   ├── auth.ts                # 认证 API：login / register / getProfile
     │   ├── files.ts               # 文件 API：CRUD、上传、根目录管理、重命名
     │   ├── share.ts               # 分享链接 API
+    │   ├── system.ts              # 审计日志 / 系统监控指标 API
     │   └── app-update.ts          # APP 更新 API
     ├── utils/
     │   ├── env.ts                 # 环境变量工具：getApiBaseUrl()、getBaseUrl()
@@ -171,6 +176,8 @@ packages/frontend/
 | `/app-update-stats`      | 升级漏斗统计 | 是       | 各版本 check/download/install 数量与转化率       |
 | `/storage-stats`         | 存储统计     | 是       | 按根目录/分类聚合的存储用量可视化                |
 | `/duplicate-files`       | 重复文件检测 | 是       | 按内容哈希分组展示重复副本并手动清理             |
+| `/audit-logs`            | 操作审计日志 | 是       | 按动作/资源/用户/时间筛选，查看操作详情          |
+| `/system-status`         | 系统状态     | 是       | QPS、内存、存储、分享、版本、24h 升级事件指标    |
 | `/user-management`       | 用户管理     | 是       | 用户列表与删除（禁止删除自己）                   |
 | `/local-file-preview`    | 本地文件预览 | 是       | 布局内嵌的文件预览                               |
 | `/:pathMatch(.*)*`       | 404 兜底     | -        | 重定向到 `/file-list`                            |
@@ -331,6 +338,20 @@ packages/frontend/
 - 查看所有注册用户（id、用户名、创建时间，不含密码哈希）
 - 删除用户（当前登录用户按钮置灰，防止误删自己）
 - 修改密码：顶部用户菜单弹窗，需验证旧密码
+
+### 15. 操作审计日志
+
+- 记录关键操作：登录 / 登出 / 注册 / 改密、文件上传 / 删除 / 重命名 / 批量操作、分类重命名、分享创建 / 撤销、应用与版本的发布 / 下架 / 回滚 / 删除 / 强更
+- 支持按操作动作、资源类型、用户名、时间范围组合筛选
+- 分页表格展示，点击「详情」查看资源标识、IP、User-Agent 与操作详情 JSON
+
+### 16. 系统状态
+
+- 进程运行时长、最近 60 秒 QPS、注册用户数
+- 进程内存（RSS / 堆已用 / 堆总量 / External）与堆使用率
+- 文件存储总量、各资源根用量、分享链接活跃情况、APP 版本状态分布
+- 最近 24 小时升级事件（检查 / 下载 / 安装成功 / 安装失败）
+- 支持 30 秒自动刷新
 
 ---
 

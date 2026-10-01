@@ -110,8 +110,25 @@ export class FilesController {
     @Param('rootId') rootId: string,
     @Param('category') category: string,
     @Body() dto: RenameCategoryDto,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
   ) {
-    return await this.service.renameCategory(rootId, category, dto.newCategory);
+    const result = await this.service.renameCategory(
+      rootId,
+      category,
+      dto.newCategory,
+    );
+    // 审计：重命名分类
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'category.rename',
+      resourceType: 'category',
+      resourceId: `${rootId}/${category}`,
+      details: { rootId, category, newCategory: dto.newCategory },
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   @Get(':rootId/:category')
@@ -151,7 +168,7 @@ export class FilesController {
     this.auditLogService.log({
       userId: currentUser.userId,
       username: currentUser.username,
-      action: 'file.delete',
+      action: 'file.batch_delete',
       resourceType: 'file',
       details: {
         rootId: dto.rootId,
@@ -166,13 +183,32 @@ export class FilesController {
 
   @Post('batch-move')
   @ApiOperation({ summary: '批量移动文件到另一个分类' })
-  async batchMove(@Body() dto: BatchMoveDto) {
-    return await this.service.batchMoveFiles(
+  async batchMove(
+    @Body() dto: BatchMoveDto,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.service.batchMoveFiles(
       dto.rootId,
       dto.category,
       dto.paths,
       dto.targetCategory,
     );
+    // 审计：批量移动文件
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'file.batch_move',
+      resourceType: 'file',
+      details: {
+        rootId: dto.rootId,
+        category: dto.category,
+        targetCategory: dto.targetCategory,
+        paths: dto.paths,
+      },
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   // ==================== 大文件分片上传 ====================
@@ -442,17 +478,29 @@ export class FilesController {
     @Param('category') category: string,
     @Param('path') path: string[] | string,
     @Body() dto: RenameFileDto,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
   ) {
     const filename = Array.isArray(path) ? path.join('/') : path;
     if (!filename) {
       throw new BadRequestException('Invalid file path');
     }
-    return await this.service.renameFile(
+    const result = await this.service.renameFile(
       rootId,
       category,
       filename,
       dto.newName,
     );
+    // 审计：重命名文件
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'file.rename',
+      resourceType: 'file',
+      details: { rootId, category, path: filename, newName: dto.newName },
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   @Delete(':rootId/:category/*path')

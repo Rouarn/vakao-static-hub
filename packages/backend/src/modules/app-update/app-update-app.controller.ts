@@ -11,10 +11,15 @@ import {
   Param,
   Patch,
   Post,
+  Req,
   UseGuards,
 } from '@nestjs/common';
 import { ApiBearerAuth, ApiOperation, ApiTags } from '@nestjs/swagger';
+import type { Request } from 'express';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { AuditLogService } from '../audit-log/audit-log.service.js';
+import { getRequestMeta } from '../../utils/request-meta.util.js';
 import { AppUpdateService } from './app-update.service.js';
 import { CreateAppDto } from './dto/create-app.dto.js';
 import { RenameAppDto } from './dto/rename-app.dto.js';
@@ -24,7 +29,10 @@ import { RenameAppDto } from './dto/rename-app.dto.js';
 @Controller('app-updates/apps')
 @UseGuards(JwtAuthGuard)
 export class AppUpdateAppController {
-  constructor(private readonly service: AppUpdateService) {}
+  constructor(
+    private readonly service: AppUpdateService,
+    private readonly auditLogService: AuditLogService,
+  ) {}
 
   @Get()
   @ApiOperation({
@@ -36,23 +44,67 @@ export class AppUpdateAppController {
 
   @Post()
   @ApiOperation({ summary: '新建应用（创建应用目录）' })
-  async create(@Body() dto: CreateAppDto) {
-    return await this.service.createApp(dto.appKey);
+  async create(
+    @Body() dto: CreateAppDto,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.service.createApp(dto.appKey);
+    // 审计：新建应用
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'app.create',
+      resourceType: 'app',
+      resourceId: dto.appKey,
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   @Patch(':appKey')
   @ApiOperation({
     summary: '修改应用标识（重命名目录并迁移全部关联记录）',
   })
-  async rename(@Param('appKey') appKey: string, @Body() dto: RenameAppDto) {
-    return await this.service.renameApp(appKey, dto.newAppKey);
+  async rename(
+    @Param('appKey') appKey: string,
+    @Body() dto: RenameAppDto,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.service.renameApp(appKey, dto.newAppKey);
+    // 审计：重命名应用
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'app.rename',
+      resourceType: 'app',
+      resourceId: appKey,
+      details: { appKey, newAppKey: dto.newAppKey },
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   @Delete(':appKey')
   @ApiOperation({
     summary: '删除应用（删除目录、全部版本/事件记录与文件索引，不可恢复）',
   })
-  async remove(@Param('appKey') appKey: string) {
-    return await this.service.deleteApp(appKey);
+  async remove(
+    @Param('appKey') appKey: string,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.service.deleteApp(appKey);
+    // 审计：删除应用（高危硬删除操作）
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'app.delete',
+      resourceType: 'app',
+      resourceId: appKey,
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 }

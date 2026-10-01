@@ -124,7 +124,10 @@ export class AuthController {
   @Post('logout')
   @ApiBearerAuth()
   @ApiOperation({ summary: '退出登录，吊销当前 Token' })
-  logout(@Req() req: Request) {
+  logout(
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
     const authHeader = req.headers.authorization;
     const token = authHeader?.startsWith('Bearer ')
       ? authHeader.slice(7)
@@ -139,6 +142,15 @@ export class AuthController {
       ? payload.exp * 1000
       : Date.now() + 12 * 60 * 60 * 1000;
     this.tokenBlacklist.revoke(token, expiresAt);
+    // 审计：用户登出
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'user.logout',
+      resourceType: 'user',
+      resourceId: String(currentUser.userId),
+      ...getRequestMeta(req),
+    });
     return { success: true };
   }
 
@@ -162,12 +174,23 @@ export class AuthController {
   async changePassword(
     @CurrentUser() currentUser: { userId: number; username: string },
     @Body() dto: ChangePasswordDto,
+    @Req() req: Request,
   ) {
-    return await this.authService.changePassword(
+    const result = await this.authService.changePassword(
       currentUser.userId,
       dto.oldPassword,
       dto.newPassword,
     );
+    // 审计：修改密码
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'user.change_password',
+      resourceType: 'user',
+      resourceId: String(currentUser.userId),
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   /**

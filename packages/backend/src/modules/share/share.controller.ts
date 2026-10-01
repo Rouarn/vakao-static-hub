@@ -10,17 +10,21 @@ import {
   Param,
   Post,
   Query,
+  Req,
   Res,
   UnauthorizedException,
   UseGuards,
 } from '@nestjs/common';
 import { ApiOperation, ApiParam, ApiTags } from '@nestjs/swagger';
-import type { Response } from 'express';
+import type { Request, Response } from 'express';
 import { stat } from 'node:fs/promises';
 import { createReadStream } from 'node:fs';
 import { basename } from 'node:path';
 import { JwtAuthGuard } from '../auth/guards/jwt-auth.guard.js';
 import { Public } from '../auth/decorators/public.decorator.js';
+import { CurrentUser } from '../../common/decorators/current-user.decorator.js';
+import { AuditLogService } from '../audit-log/audit-log.service.js';
+import { getRequestMeta } from '../../utils/request-meta.util.js';
 import { ShareService } from './share.service.js';
 import { FilesService } from '../files/files.service.js';
 import { CreateShareLinkDto } from './dto/create-share-link.dto.js';
@@ -33,12 +37,33 @@ export class ShareController {
   constructor(
     private readonly shareService: ShareService,
     private readonly filesService: FilesService,
+    private readonly auditLogService: AuditLogService,
   ) {}
 
   @Post()
   @ApiOperation({ summary: '创建分享链接' })
-  async createShareLink(@Body() dto: CreateShareLinkDto) {
-    return await this.shareService.createShareLink(dto);
+  async createShareLink(
+    @Body() dto: CreateShareLinkDto,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.shareService.createShareLink(dto);
+    // 审计：创建分享链接
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'share.create',
+      resourceType: 'share',
+      resourceId: result.token,
+      details: {
+        rootId: dto.rootId,
+        category: dto.category,
+        shareType: result.shareType,
+        fileCount: result.filePaths?.length ?? 1,
+      },
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   @Get('list')
@@ -57,8 +82,22 @@ export class ShareController {
   @Delete(':token')
   @ApiOperation({ summary: '撤销分享链接' })
   @ApiParam({ name: 'token', description: '分享 token' })
-  async revokeShareLink(@Param('token') token: string) {
-    return await this.shareService.revokeShareLink(token);
+  async revokeShareLink(
+    @Param('token') token: string,
+    @CurrentUser() currentUser: { userId: number; username: string },
+    @Req() req: Request,
+  ) {
+    const result = await this.shareService.revokeShareLink(token);
+    // 审计：撤销分享链接
+    this.auditLogService.log({
+      userId: currentUser.userId,
+      username: currentUser.username,
+      action: 'share.revoke',
+      resourceType: 'share',
+      resourceId: token,
+      ...getRequestMeta(req),
+    });
+    return result;
   }
 
   @Public()
