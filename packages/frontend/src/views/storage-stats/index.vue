@@ -55,7 +55,13 @@ onMounted(loadStats);
         </NIcon>
         <h2 class="text-xl font-semibold text-base">存储统计</h2>
       </div>
-      <NButton quaternary circle title="刷新" :loading="loading" @click="loadStats">
+      <NButton
+        quaternary
+        circle
+        title="刷新"
+        :loading="loading"
+        @click="loadStats"
+      >
         <template #icon>
           <NIcon><RefreshOutline /></NIcon>
         </template>

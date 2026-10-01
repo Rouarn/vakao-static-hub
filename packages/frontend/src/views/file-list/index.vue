@@ -414,9 +414,7 @@ async function confirmBatchMove() {
           </template>
           批量删除
         </NButton>
-        <NButton size="tiny" quaternary @click="clearSelection">
-          取消
-        </NButton>
+        <NButton size="tiny" quaternary @click="clearSelection"> 取消 </NButton>
       </div>
 
       <div

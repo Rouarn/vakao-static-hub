@@ -48,7 +48,9 @@ export class UpdateVersionDto {
     enum: ['full', 'gray'],
   })
   @IsOptional()
-  @IsIn(['full', 'gray'], { message: 'scheduledPublishMode 仅支持 full 或 gray' })
+  @IsIn(['full', 'gray'], {
+    message: 'scheduledPublishMode 仅支持 full 或 gray',
+  })
   scheduledPublishMode?: 'full' | 'gray';
 
   @ApiPropertyOptional({

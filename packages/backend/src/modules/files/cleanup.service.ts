@@ -39,7 +39,9 @@ export class CleanupService {
 
     if (orphans.length > 0) {
       await this.imageProcessor.removeCacheEntries(orphans);
-      this.logger.log(`Cleaned ${orphans.length} orphaned thumbnail cache entries`);
+      this.logger.log(
+        `Cleaned ${orphans.length} orphaned thumbnail cache entries`,
+      );
     } else {
       this.logger.log('No orphaned thumbnail cache entries found');
     }
@@ -51,9 +53,7 @@ export class CleanupService {
     const result = await this.shareRepo
       .createQueryBuilder()
       .delete()
-      .where([
-        { expiresAt: LessThan(now) },
-      ])
+      .where([{ expiresAt: LessThan(now) }])
       .orWhere('maxAccesses IS NOT NULL AND accessCount >= maxAccesses')
       .execute();
 

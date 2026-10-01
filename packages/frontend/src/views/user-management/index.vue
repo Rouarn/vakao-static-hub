@@ -54,9 +54,7 @@ async function confirmDelete() {
     showDeleteModal.value = false;
     await loadUsers();
   } catch (error: any) {
-    message.error(
-      error.response?.data?.message || error.message || '删除失败',
-    );
+    message.error(error.response?.data?.message || error.message || '删除失败');
   } finally {
     deleting.value = false;
   }
@@ -78,7 +76,9 @@ const columns: DataTableColumns<UserInfo> = [
     render: (row) => {
       const isSelf = row.id === authStore.userInfo?.id;
       return h('div', { class: 'flex items-center gap-2' }, [
-        isSelf ? h(NTag, { size: 'small' }, { default: () => '当前用户' }) : null,
+        isSelf
+          ? h(NTag, { size: 'small' }, { default: () => '当前用户' })
+          : null,
         h(
           NButton,
           {
@@ -100,10 +100,7 @@ onMounted(loadUsers);
 
 <template>
   <div class="p-4 sm:p-6">
-    <NCard
-      title="用户管理"
-      class="shadow-xl rounded-2xl border-none bg-base"
-    >
+    <NCard title="用户管理" class="shadow-xl rounded-2xl border-none bg-base">
       <template #header-extra>
         <NButton size="small" :loading="loading" @click="loadUsers">
           刷新

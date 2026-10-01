@@ -127,10 +127,7 @@ async function handleSubmit() {
       message.error('定时发布时间必须晚于当前时间');
       return;
     }
-    if (
-      scheduledPublishMode.value === 'gray' &&
-      !scheduledGrayPercent.value
-    ) {
+    if (scheduledPublishMode.value === 'gray' && !scheduledGrayPercent.value) {
       message.error('请选择定时灰度发布的百分比');
       return;
     }
@@ -154,8 +151,7 @@ async function handleSubmit() {
           ? scheduledPublishMode.value
           : undefined,
         scheduledGrayPercent:
-          enableScheduledPublish.value &&
-          scheduledPublishMode.value === 'gray'
+          enableScheduledPublish.value && scheduledPublishMode.value === 'gray'
             ? scheduledGrayPercent.value!
             : undefined,
       },

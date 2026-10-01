@@ -49,8 +49,7 @@ export class AuditLogService {
       action: data.action,
       resourceType: data.resourceType,
       resourceId: data.resourceId ?? null,
-      details:
-        data.details !== undefined ? JSON.stringify(data.details) : null,
+      details: data.details !== undefined ? JSON.stringify(data.details) : null,
       ip: data.ip ?? null,
       userAgent: data.userAgent ?? null,
       createdAt: Date.now(),

@@ -134,7 +134,9 @@ async function handleConfirm() {
 
         <div class="flex items-center gap-2">
           <NSwitch v-model:value="autoIncrement" :disabled="submitting" />
-          <span class="text-sm">灰度自动递增（按时间表自动扩量，达 100% 自动转全量）</span>
+          <span class="text-sm"
+            >灰度自动递增（按时间表自动扩量，达 100% 自动转全量）</span
+          >
         </div>
 
         <div v-if="autoIncrement" class="flex flex-col gap-2">
@@ -152,7 +154,9 @@ async function handleConfirm() {
               class="w-24"
               :disabled="submitting"
             />
-            <span class="text-xs text-gray-500 whitespace-nowrap">小时后扩量至</span>
+            <span class="text-xs text-gray-500 whitespace-nowrap"
+              >小时后扩量至</span
+            >
             <NInputNumber
               v-model:value="step.percent"
               :min="1"
@@ -176,7 +180,12 @@ async function handleConfirm() {
             </NButton>
           </div>
           <div>
-            <NButton size="tiny" quaternary :disabled="submitting" @click="addStep">
+            <NButton
+              size="tiny"
+              quaternary
+              :disabled="submitting"
+              @click="addStep"
+            >
               <template #icon>
                 <NIcon :component="AddOutline" />
               </template>

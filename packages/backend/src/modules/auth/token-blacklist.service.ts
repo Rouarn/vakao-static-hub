@@ -23,7 +23,9 @@ export class TokenBlacklistService implements OnModuleDestroy {
   /** 吊销 token，直到其过期时间 */
   revoke(token: string, expiresAtMs: number) {
     this.revoked.set(token, expiresAtMs);
-    this.logger.debug(`Token revoked, current blacklist size: ${this.revoked.size}`);
+    this.logger.debug(
+      `Token revoked, current blacklist size: ${this.revoked.size}`,
+    );
   }
 
   /** 检查 token 是否已被吊销 */
@@ -41,7 +43,9 @@ export class TokenBlacklistService implements OnModuleDestroy {
       }
     }
     if (count > 0) {
-      this.logger.debug(`Cleaned ${count} expired revoked tokens, current size: ${this.revoked.size}`);
+      this.logger.debug(
+        `Cleaned ${count} expired revoked tokens, current size: ${this.revoked.size}`,
+      );
     }
   }
 }

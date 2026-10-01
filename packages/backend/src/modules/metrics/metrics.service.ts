@@ -151,7 +151,10 @@ export class MetricsService {
     const statMap = new Map(
       rows.map((r) => [
         r.rootId,
-        { fileCount: Number(r.fileCount) || 0, totalSize: Number(r.totalSize) || 0 },
+        {
+          fileCount: Number(r.fileCount) || 0,
+          totalSize: Number(r.totalSize) || 0,
+        },
       ]),
     );
 
@@ -195,7 +198,13 @@ export class MetricsService {
     const published = countByStatus.get(VERSION_STATUS.PUBLISHED) ?? 0;
     const offline = countByStatus.get(VERSION_STATUS.OFFLINE) ?? 0;
 
-    return { total: draft + gray + published + offline, published, draft, gray, offline };
+    return {
+      total: draft + gray + published + offline,
+      published,
+      draft,
+      gray,
+      offline,
+    };
   }
 
   /** 最近 24 小时各升级事件类型的数量 */
