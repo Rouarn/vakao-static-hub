@@ -108,7 +108,7 @@ const mobileMenuOptions = computed<DropdownOption[]>(() => [
   },
   {
     key: 'theme',
-    label: isDark.value ? '切换到浅色模式' : '切换到深色模式',
+    label: isDark.value ? '浅色模式' : '深色模式',
     icon: () =>
       h(NIcon, null, {
         default: () => h(isDark.value ? SunnyOutline : MoonOutline),

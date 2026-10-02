@@ -347,8 +347,14 @@ onMounted(() => {});
                     </div>
 
                     <div class="flex-1 min-w-0">
-                      <div class="flex items-center gap-2 mb-1">
-                        <span class="font-bold text-base">{{ root.name }}</span>
+                      <div
+                        class="flex flex-wrap items-center gap-x-2 gap-y-1 mb-1"
+                      >
+                        <span
+                          class="font-bold text-base w-full sm:w-auto sm:max-w-[240px] min-w-0 truncate"
+                        >
+                          {{ root.name }}
+                        </span>
                         <NTag
                           size="small"
                           :bordered="false"
