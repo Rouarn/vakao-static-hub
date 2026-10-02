@@ -144,7 +144,7 @@ onUnmounted(() => {
     <NSpin :show="loading">
       <div v-if="metrics" class="flex flex-col gap-4">
         <!-- 运行状态概览 -->
-        <NGrid :cols="3" :x-gap="12" :y-gap="12" responsive="screen">
+        <NGrid cols="1 s:3" :x-gap="12" :y-gap="12" responsive="screen">
           <NGridItem>
             <NCard size="small">
               <div class="flex items-start gap-3">

@@ -44,7 +44,7 @@ export class ShareLinkEntity {
   @Column({ type: 'integer', nullable: true })
   expiresAt!: number | null;
 
-  /** 最大访问次数，null 表示不限制 */
+  /** 最大打开（解锁）次数，null 表示不限制；打开后下载文件不再计数 */
   @Column({ type: 'integer', nullable: true })
   maxAccesses!: number | null;
 
@@ -52,7 +52,7 @@ export class ShareLinkEntity {
   @Column({ type: 'varchar', length: 255, nullable: true })
   passwordHash!: string | null;
 
-  /** 当前已访问次数 */
+  /** 当前已成功打开（解锁）次数 */
   @Column({ type: 'integer', default: 0 })
   accessCount!: number;
 

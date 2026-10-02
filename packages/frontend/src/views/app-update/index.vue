@@ -1,5 +1,14 @@
 <script setup lang="ts">
-import { ref, onMounted, computed, h, watch, type VNode } from 'vue';
+import {
+  ref,
+  onMounted,
+  computed,
+  h,
+  watch,
+  type VNode,
+  type Component,
+} from 'vue';
+import { useMediaQuery } from '@vueuse/core';
 import {
   useMessage,
   NDataTable,
@@ -57,6 +66,11 @@ defineOptions({
 });
 
 const message = useMessage();
+
+/** 窄屏（手机）：操作列不固定、按钮图标化，避免固定操作列占满视口 */
+const isMobile = useMediaQuery('(max-width: 767px)');
+/** 表格最小滚动宽度：窄屏操作列 120，宽屏操作列 340 */
+const tableScrollX = computed(() => (isMobile.value ? 940 : 1100));
 
 const apps = ref<string[]>([]);
 const selectedApp = ref<string | null>(null);
@@ -526,115 +540,130 @@ const columns = computed<DataTableColumns<AppVersion>>(() => [
   {
     title: '操作',
     key: 'actions',
-    width: 340,
-    fixed: 'right',
+    width: isMobile.value ? 120 : 340,
+    fixed: isMobile.value ? undefined : 'right',
     render(row) {
-      const actions: VNode[] = [];
+      // 先按版本状态汇总可用动作，再按屏幕宽度渲染文字按钮或圆形图标按钮
+      type ActionType =
+        'default' | 'primary' | 'info' | 'success' | 'warning' | 'error';
+      type ActionDef = {
+        label: string;
+        icon: Component;
+        type?: ActionType;
+        /** 存在确认文案时渲染为 NPopconfirm，否则直接点击执行 */
+        confirmText?: string;
+        confirmTip?: string;
+        onClick: () => void;
+      };
+      const defs: ActionDef[] = [];
       if (publishable(row)) {
-        actions.push(
-          h(
-            NButton,
-            {
-              size: 'small',
-              quaternary: true,
-              type: 'primary',
-              onClick: () => openPublish(row),
-            },
-            {
-              icon: () => h(NIcon, null, () => h(RocketOutline)),
-              default: () => '发布',
-            },
-          ),
-        );
+        defs.push({
+          label: '发布',
+          icon: RocketOutline,
+          type: 'primary',
+          onClick: () => openPublish(row),
+        });
       }
       if (editable(row)) {
-        actions.push(
-          h(
-            NButton,
-            {
-              size: 'small',
-              quaternary: true,
-              onClick: () => openEdit(row),
-            },
-            {
-              icon: () => h(NIcon, null, () => h(CreateOutline)),
-              default: () => '编辑',
-            },
-          ),
-        );
+        defs.push({
+          label: '编辑',
+          icon: CreateOutline,
+          onClick: () => openEdit(row),
+        });
       }
       if (row.status === 1 || row.status === 2) {
-        actions.push(
-          h(
-            NPopconfirm,
-            {
-              'positive-text': '回滚',
-              'negative-text': '取消',
-              onPositiveClick: () => handleRollback(row),
-            },
-            {
-              trigger: () =>
-                h(
-                  NButton,
-                  { size: 'small', quaternary: true, type: 'error' },
-                  {
-                    icon: () => h(NIcon, null, () => h(ReturnUpBackOutline)),
-                    default: () => '回滚',
-                  },
-                ),
-              default: () =>
-                `回滚将下架 v${row.versionName}，并恢复上一个全量版本在线，确定？`,
-            },
-          ),
-          h(
-            NPopconfirm,
-            {
-              'positive-text': '下架',
-              'negative-text': '取消',
-              onPositiveClick: () => handleOffline(row),
-            },
-            {
-              trigger: () =>
-                h(
-                  NButton,
-                  { size: 'small', quaternary: true, type: 'warning' },
-                  {
-                    icon: () => h(NIcon, null, () => h(CloudOfflineOutline)),
-                    default: () => '下架',
-                  },
-                ),
-              default: () =>
-                '下架后客户端立即检测不到此版本（止血开关），确定？',
-            },
-          ),
-        );
+        defs.push({
+          label: '回滚',
+          icon: ReturnUpBackOutline,
+          type: 'error',
+          confirmText: '回滚',
+          confirmTip: `回滚将下架 v${row.versionName}，并恢复上一个全量版本在线，确定？`,
+          onClick: () => handleRollback(row),
+        });
+        defs.push({
+          label: '下架',
+          icon: CloudOfflineOutline,
+          type: 'warning',
+          confirmText: '下架',
+          confirmTip: '下架后客户端立即检测不到此版本（止血开关），确定？',
+          onClick: () => handleOffline(row),
+        });
       }
       if (editable(row)) {
-        actions.push(
-          h(
-            NPopconfirm,
-            {
-              'positive-text': '删除',
-              'negative-text': '取消',
-              onPositiveClick: () => handleRemove(row),
-            },
-            {
-              trigger: () =>
-                h(
-                  NButton,
-                  { size: 'small', quaternary: true, type: 'error' },
+        defs.push({
+          label: '删除',
+          icon: TrashOutline,
+          type: 'error',
+          confirmText: '删除',
+          confirmTip:
+            '将物理删除安装包文件及该版本的全部关联记录，删除后不可恢复。确定删除？',
+          onClick: () => handleRemove(row),
+        });
+      }
+
+      if (isMobile.value) {
+        return h(
+          'div',
+          { class: 'flex items-center gap-1 flex-wrap' },
+          defs.map((d) => {
+            const trigger = () =>
+              h(
+                NButton,
+                {
+                  size: 'small',
+                  quaternary: true,
+                  circle: true,
+                  type: d.type,
+                },
+                { icon: () => h(NIcon, null, () => h(d.icon)) },
+              );
+            return d.confirmText
+              ? h(
+                  NPopconfirm,
                   {
-                    icon: () => h(NIcon, null, () => h(TrashOutline)),
-                    default: () => '删除',
+                    'positive-text': d.confirmText,
+                    'negative-text': '取消',
+                    onPositiveClick: d.onClick,
                   },
-                ),
-              default: () =>
-                '将物理删除安装包文件及该版本的全部关联记录，删除后不可恢复。确定删除？',
-            },
-          ),
+                  { trigger, default: () => d.confirmTip },
+                )
+              : h(NTooltip, null, {
+                  trigger,
+                  default: () => d.label,
+                });
+          }),
         );
       }
-      return h(NSpace, { size: 'small' }, () => actions);
+
+      return h(NSpace, { size: 'small' }, () =>
+        defs.map((d) => {
+          const trigger = () =>
+            h(
+              NButton,
+              {
+                size: 'small',
+                quaternary: true,
+                type: d.type,
+                onClick: d.confirmText ? undefined : d.onClick,
+              },
+              {
+                icon: () => h(NIcon, null, () => h(d.icon)),
+                default: () => d.label,
+              },
+            );
+          return d.confirmText
+            ? h(
+                NPopconfirm,
+                {
+                  'positive-text': d.confirmText,
+                  'negative-text': '取消',
+                  onPositiveClick: d.onClick,
+                },
+                { trigger, default: () => d.confirmTip },
+              )
+            : trigger();
+        }),
+      );
     },
   },
 ]);
@@ -759,7 +788,7 @@ onMounted(() => {
         :loading="loading"
         :bordered="false"
         :single-line="false"
-        :scroll-x="1100"
+        :scroll-x="tableScrollX"
         :pagination="pagination"
         remote
         class="rounded-xl shadow-sm"

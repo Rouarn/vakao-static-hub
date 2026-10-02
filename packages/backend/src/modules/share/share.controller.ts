@@ -110,16 +110,18 @@ export class ShareController {
 
   @Public()
   @Post(':token/verify')
-  @ApiOperation({ summary: '校验分享密码并返回临时访问令牌' })
+  @ApiOperation({ summary: '解锁分享链接（校验密码，无密码链接直接解锁）' })
   @ApiParam({ name: 'token', description: '分享 token' })
-  async verifySharePassword(
+  async unlockShareLink(
     @Param('token') token: string,
-    @Body() body: { password?: string },
+    @Body() body: { password?: string } | undefined,
+    @Ip() ip: string | undefined,
+    @Headers('user-agent') userAgent: string | undefined,
   ) {
-    if (!body?.password) {
-      throw new BadRequestException('请提供访问密码');
-    }
-    return await this.shareService.verifySharePassword(token, body.password);
+    const result = await this.shareService.unlock(token, body?.password);
+    // 一次成功解锁记一条访问日志（打开链接一次，而非每个文件一条）
+    this.shareService.recordAccess(token, ip ?? null, userAgent ?? null);
+    return result;
   }
 
   @Public()
@@ -135,18 +137,13 @@ export class ShareController {
     @Query('format') format: string | undefined,
     @Query('index') index: string | undefined,
     @Query('accessToken') accessToken: string | undefined,
-    @Ip() ip: string | undefined,
-    @Headers('user-agent') userAgent: string | undefined,
     @Res() res: Response,
   ) {
     try {
-      const linkInfo = await this.shareService.validateAndAccess(
+      const linkInfo = await this.shareService.validateFileAccess(
         token,
         accessToken,
       );
-
-      // 校验通过后异步写入访问记录，不阻塞文件响应
-      this.shareService.recordAccess(token, ip ?? null, userAgent ?? null);
 
       // collection 类型且未指定 index 时，返回文件列表 JSON
       if (linkInfo.shareType === 'collection' && index === undefined) {

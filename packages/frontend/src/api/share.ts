@@ -38,11 +38,14 @@ export function getShareInfo(token: string) {
   return get<ShareInfo>(`/share/${token}/info`);
 }
 
-/** 校验分享访问密码，验证通过返回临时访问令牌 */
-export function verifySharePassword(token: string, password: string) {
+/**
+ * 解锁分享链接，返回临时访问令牌
+ * 一次解锁 = 消耗一次"打开次数"；无密码链接不传密码即可自动解锁
+ */
+export function unlockShare(token: string, password?: string) {
   return post<{ success: boolean; accessToken: string }>(
     `/share/${token}/verify`,
-    { password },
+    password ? { password } : {},
   );
 }
 

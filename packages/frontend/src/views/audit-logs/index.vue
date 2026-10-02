@@ -198,6 +198,12 @@ function openDetail(row: AuditLog) {
   showDetail.value = true;
 }
 
+/**
+ * 表格内容的最小宽度（各固定列宽度 + 弹性列「资源标识」最小 200）
+ * 窄屏（移动端）表格按此宽度内部横向滚动，宽屏下弹性列自动撑满剩余空间
+ */
+const TABLE_SCROLL_X = 970;
+
 const columns: DataTableColumns<AuditLog> = [
   {
     title: '时间',
@@ -334,6 +340,7 @@ onMounted(loadLogs);
         <NDataTable
           :columns="columns"
           :data="logs"
+          :scroll-x="TABLE_SCROLL_X"
           :row-key="(row: AuditLog) => row.id"
           :pagination="{
             page,

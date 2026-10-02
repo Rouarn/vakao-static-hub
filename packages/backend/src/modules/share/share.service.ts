@@ -69,37 +69,69 @@ export class ShareService {
   }
 
   /**
-   * 校验分享链接并返回文件信息
-   * @param token 分享 token
-   * @param accessToken 可选的访问令牌（有密码保护时必填）
+   * 解锁分享链接（一次"打开"）：校验过期/次数/密码，通过后计数 +1 并签发访问令牌
+   * 计数语义为"链接打开次数"：解锁成功才计数，解锁后凭令牌下载文件不再计数
    */
-  async validateAndAccess(token: string, accessToken?: string) {
+  async unlock(token: string, password?: string) {
     const link = await this.repo.findOne({ where: { token } });
     if (!link) {
       throw new NotFoundException('分享链接不存在');
     }
 
-    const now = Date.now();
-
-    if (link.expiresAt && now > link.expiresAt) {
+    if (link.expiresAt && Date.now() > link.expiresAt) {
       throw new BadRequestException('分享链接已过期');
     }
 
-    if (link.maxAccesses && link.accessCount >= link.maxAccesses) {
-      throw new BadRequestException('分享链接访问次数已达上限');
-    }
-
-    // 有密码保护时必须提供有效的访问令牌
     if (link.passwordHash) {
-      if (!accessToken) {
+      if (!password) {
         throw new UnauthorizedException('该分享链接需要访问密码');
       }
-      if (!this.validateShareAccessToken(token, accessToken)) {
-        throw new UnauthorizedException('访问令牌无效或已过期');
+      const ok = await verifyPassword(password, link.passwordHash);
+      if (!ok) {
+        throw new UnauthorizedException('访问密码错误');
       }
     }
 
-    await this.repo.increment({ id: link.id }, 'accessCount', 1);
+    // 条件原子自增：未设置上限或未达上限时才 +1，避免并发下突破上限
+    const result = await this.repo
+      .createQueryBuilder()
+      .update(ShareLinkEntity)
+      .set({ accessCount: () => 'accessCount + 1' })
+      .where('id = :id', { id: link.id })
+      .andWhere('(maxAccesses IS NULL OR accessCount < maxAccesses)')
+      .execute();
+
+    if (!result.affected) {
+      throw new BadRequestException('分享链接打开次数已达上限');
+    }
+
+    return {
+      success: true as const,
+      accessToken: this.signShareAccessToken(token),
+    };
+  }
+
+  /**
+   * 校验文件下载/预览请求
+   * 打开后凭有效访问令牌访问，不再消耗打开次数
+   * @param token 分享 token
+   * @param accessToken 解锁时签发的访问令牌（必填）
+   */
+  async validateFileAccess(token: string, accessToken?: string) {
+    const link = await this.repo.findOne({ where: { token } });
+    if (!link) {
+      throw new NotFoundException('分享链接不存在');
+    }
+
+    if (link.expiresAt && Date.now() > link.expiresAt) {
+      throw new BadRequestException('分享链接已过期');
+    }
+
+    if (!accessToken || !this.validateShareAccessToken(token, accessToken)) {
+      throw new UnauthorizedException(
+        '访问令牌无效或已过期，请重新打开分享链接',
+      );
+    }
 
     return {
       rootId: link.rootId,
@@ -109,7 +141,6 @@ export class ShareService {
       filePaths: this.parseFilePaths(link.filePaths),
       expiresAt: link.expiresAt,
       maxAccesses: link.maxAccesses,
-      accessCount: link.accessCount + 1,
     };
   }
 
@@ -133,28 +164,6 @@ export class ShareService {
       maxAccesses: link.maxAccesses,
       hasPassword: !!link.passwordHash,
     };
-  }
-
-  /**
-   * 校验分享密码，验证通过则签发临时访问令牌
-   */
-  async verifySharePassword(token: string, password: string) {
-    const link = await this.repo.findOne({ where: { token } });
-    if (!link) {
-      throw new NotFoundException('分享链接不存在');
-    }
-
-    if (!link.passwordHash) {
-      // 无密码保护的链接直接签发访问令牌
-      return { success: true, accessToken: this.signShareAccessToken(token) };
-    }
-
-    const ok = await verifyPassword(password, link.passwordHash);
-    if (!ok) {
-      throw new UnauthorizedException('访问密码错误');
-    }
-
-    return { success: true, accessToken: this.signShareAccessToken(token) };
   }
 
   async listShareLinks() {

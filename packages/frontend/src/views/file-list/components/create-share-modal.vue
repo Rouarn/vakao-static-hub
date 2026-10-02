@@ -158,7 +158,7 @@ function copyLink() {
         </div>
 
         <div>
-          <div class="text-sm font-medium mb-2">访问次数限制</div>
+          <div class="text-sm font-medium mb-2">打开次数限制</div>
           <NInputGroup>
             <NInputGroupLabel>最大次数</NInputGroupLabel>
             <NSelect
@@ -166,6 +166,9 @@ function copyLink() {
               :options="accessLimitOptions"
             />
           </NInputGroup>
+          <div class="mt-1 text-xs text-gray-400">
+            链接每被成功打开一次计 1 次；打开后下载其中文件不再计数
+          </div>
         </div>
 
         <div>

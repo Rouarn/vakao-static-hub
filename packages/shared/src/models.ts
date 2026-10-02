@@ -34,7 +34,9 @@ export interface ShareLink {
   /** 多文件相对路径列表，仅 shareType='collection' 时存在 */
   filePaths: string[] | null;
   expiresAt: number | null;
+  /** 最大打开次数，null 表示不限制；打开后下载文件不再计数 */
   maxAccesses: number | null;
+  /** 已成功打开（解锁）次数 */
   accessCount: number;
   createdAt: number;
   /** 是否设置了访问密码（不会返回密码哈希本身） */
@@ -63,6 +65,7 @@ export interface CreateShareLinkParams {
   /** 多文件相对路径列表，shareType='collection' 时必填 */
   filePaths?: string[];
   expiresInMs?: number;
+  /** 最大打开次数；链接每被成功解锁一次计 1 次，打开后下载文件不计数 */
   maxAccesses?: number;
   /** 访问密码，可选，传入后访问分享需要密码验证 */
   password?: string;

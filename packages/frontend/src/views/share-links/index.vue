@@ -11,9 +11,11 @@ import {
   NInput,
   NModal,
   NSpin,
+  NTooltip,
 } from 'naive-ui';
 import type { DataTableColumns } from 'naive-ui';
 import { h } from 'vue';
+import { useMediaQuery } from '@vueuse/core';
 import {
   LinkOutline,
   CopyOutline,
@@ -38,6 +40,11 @@ const message = useMessage();
 const loading = ref(false);
 const shareLinks = ref<ShareLink[]>([]);
 const searchText = ref('');
+
+/** 窄屏（手机）：操作列不固定、按钮图标化，避免固定操作列占满视口 */
+const isMobile = useMediaQuery('(max-width: 767px)');
+/** 表格最小滚动宽度：窄屏操作列 120 + 文件列 180，宽屏操作列 300 + 文件列 200 */
+const tableScrollX = computed(() => (isMobile.value ? 1040 : 1240));
 
 const filteredLinks = computed(() => {
   if (!searchText.value) return shareLinks.value;
@@ -209,7 +216,7 @@ const columns = computed<DataTableColumns<ShareLink>>(() => [
     },
   },
   {
-    title: '访问次数',
+    title: '打开次数',
     key: 'accessCount',
     width: 120,
     render(row) {
@@ -230,9 +237,72 @@ const columns = computed<DataTableColumns<ShareLink>>(() => [
   {
     title: '操作',
     key: 'actions',
-    width: 300,
-    fixed: 'right',
+    width: isMobile.value ? 120 : 300,
+    fixed: isMobile.value ? undefined : 'right',
     render(row) {
+      // 窄屏：仅显示图标按钮（悬浮显示名称），不固定在右侧
+      if (isMobile.value) {
+        return h('div', { class: 'flex items-center gap-1' }, [
+          h(NTooltip, null, {
+            trigger: () =>
+              h(
+                NButton,
+                {
+                  size: 'small',
+                  quaternary: true,
+                  circle: true,
+                  type: 'primary',
+                  onClick: () => copyLink(row.token),
+                },
+                {
+                  icon: () => h(NIcon, null, () => h(CopyOutline)),
+                },
+              ),
+            default: () => '复制链接',
+          }),
+          h(NTooltip, null, {
+            trigger: () =>
+              h(
+                NButton,
+                {
+                  size: 'small',
+                  quaternary: true,
+                  circle: true,
+                  type: 'info',
+                  onClick: () => openAccessLogs(row),
+                },
+                {
+                  icon: () => h(NIcon, null, () => h(DocumentTextOutline)),
+                },
+              ),
+            default: () => '访问记录',
+          }),
+          h(
+            NPopconfirm,
+            {
+              'positive-text': '撤销',
+              'negative-text': '取消',
+              onPositiveClick: () => handleRevoke(row.token),
+            },
+            {
+              trigger: () =>
+                h(
+                  NButton,
+                  {
+                    size: 'small',
+                    quaternary: true,
+                    circle: true,
+                    type: 'error',
+                  },
+                  {
+                    icon: () => h(NIcon, null, () => h(TrashOutline)),
+                  },
+                ),
+              default: () => '确定要撤销此分享链接吗？',
+            },
+          ),
+        ]);
+      }
       return h(NSpace, { size: 'small' }, () => [
         h(
           NButton,
@@ -366,7 +436,7 @@ onMounted(() => {
       :loading="loading"
       :bordered="false"
       :single-line="false"
-      :scroll-x="900"
+      :scroll-x="tableScrollX"
       class="rounded-xl shadow-sm"
     />
 
@@ -398,6 +468,7 @@ onMounted(() => {
           :data="accessLogs"
           :bordered="false"
           :single-line="false"
+          :scroll-x="560"
           size="small"
           max-height="400"
         />
